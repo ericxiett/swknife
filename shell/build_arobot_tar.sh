@@ -6,9 +6,12 @@ set -ex
 yum install -y git wget createrepo
 
 # Build rpms of ironic and ironic-inspector
-git clone https://github.com/ericxiett/arobot_contrib.git
 base_path=$(cd `dirname $0`; pwd)
 contrib_path=$base_path/arobot_contrib
+if [[ -d $contrib_path ]]; then
+    rm -rf $contrib_path
+fi
+git clone https://github.com/ericxiett/arobot_contrib.git
 cd $contrib_path
 sh build_rpm.sh
 
