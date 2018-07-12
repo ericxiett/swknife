@@ -3,7 +3,7 @@
 set -ex
 
 # Ensure required rpms installed
-yum install -y git wget createrepo
+yum install -y git wget createrepo epel-release
 
 # Build rpms of ironic and ironic-inspector
 base_path=$(cd `dirname $0`; pwd)
@@ -64,7 +64,7 @@ cd $files_path
 wget http://172.23.59.135/deploy_ramdisk/deploy-latest.initramfs
 wget http://172.23.59.135/deploy_ramdisk/deploy-latest.vmlinuz
 mv deploy-latest.initramfs deploy.initramfs
-mv deploy-latest.initramfs deploy.vmlinuz
+mv deploy-latest.vmlinuz deploy.vmlinuz
 
 cd $base_path
 tar -cvf ansible_arobot.tar ansible_arobot/
