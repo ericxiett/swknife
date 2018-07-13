@@ -68,3 +68,9 @@ mv deploy-latest.vmlinuz deploy.vmlinuz
 
 cd $base_path
 tar -cvf ansible_arobot.tar ansible_arobot/
+
+# Clean footprints
+rm -rf ansible_arobot/
+rm -rf arobot*
+rm -rf third_deps*
+
