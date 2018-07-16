@@ -6,8 +6,8 @@ import json
 
 import xlwt
 
-VALID_FEILDS = ['index', 'sn', 'name', 'linked', 'mac']
-# VALID_FEILDS = ['sn', 'name', 'linked', 'mac', 'vlanid', 'switch', 'port']
+# VALID_FEILDS = ['index', 'sn', 'name', 'linked', 'mac']
+VALID_FEILDS = ['index', 'sn', 'name', 'linked', 'mac', 'vlanid', 'switch', 'port']
 
 import sys
 
@@ -46,15 +46,35 @@ def main():
         nics = node_info.extra['nic_detailed']
         top_row = row
         for nic in nics:
-            ws.write(row, VALID_FEILDS.index('index'), row, style1)
-            ws.write(row, VALID_FEILDS.index('name'), nic['name'], style1)
-            ws.write(row, VALID_FEILDS.index('linked'), nic['has_carrier'], style1)
-            ws.write(row, VALID_FEILDS.index('mac'), nic['mac_address'], style1)
+            try:
+                lldpctl = json.loads(nic['lldpctl'])
+                keys = lldpctl['lldp']['interface'].keys()
+                # print('%s' % lldpctl['lldp']['interface'].get(keys[0])['vlan']['vlan-id'])
+                vlanid = lldpctl['lldp']['interface'].get(keys[0])['vlan']['vlan-id']
+                port = lldpctl['lldp']['interface'].get(keys[0])['port']['descr']
+                # print('%s' % port)
+                switch = lldpctl['lldp']['interface'].get(keys[0])['chassis'].keys()[0]
+                # print('%s' % switch)
+                ws.write(row, VALID_FEILDS.index('index'), row, style1)
+                ws.write(row, VALID_FEILDS.index('name'), nic['name'], style1)
+                ws.write(row, VALID_FEILDS.index('linked'), nic['has_carrier'], style1)
+                ws.write(row, VALID_FEILDS.index('mac'), nic['mac_address'], style1)
+                ws.write(row, VALID_FEILDS.index('vlanid'), vlanid, style1)
+                ws.write(row, VALID_FEILDS.index('switch'), switch, style1)
+                ws.write(row, VALID_FEILDS.index('port'), port, style1)
+            except Exception as e:
+                print('node %s(%s) got error %s' % (sn, nic, e))
+                ws.write(row, VALID_FEILDS.index('index'), row, style1)
+                ws.write(row, VALID_FEILDS.index('name'), nic['name'], style1)
+                ws.write(row, VALID_FEILDS.index('linked'), nic['has_carrier'], style1)
+                ws.write(row, VALID_FEILDS.index('mac'), nic['mac_address'], style1)
+                row += 1
+                continue
             row += 1
         ws.write_merge(top_row, row-1, VALID_FEILDS.index('sn'), VALID_FEILDS.index('sn'), sn, style1)
 
     wb.save('nics_info.xls')
-    print('Get nics info and output nics_info.xls successfully!')
+    print('Get nics info and out`put nics_info.xls successfully!')
 
 
 if __name__ == '__main__':
