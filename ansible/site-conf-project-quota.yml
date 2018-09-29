@@ -1,0 +1,60 @@
+---
+
+- name: Get start timestamp
+  hosts: deploy
+  connection: local
+  tasks:
+    - set_fact:
+        starttime: '{{ ansible_date_time }}'
+  tags: info
+
+- name: Create user yanhua-dev
+  hosts: deploy
+  connection: local
+  tasks:
+    - os_user:
+        cloud: bjicp01
+        state: present
+        name: yanhua-dev
+        password: Rk5mSdwO83eI
+        email: yanhua-dev@advantech.com
+        default_project: yanhua
+  tags: user
+
+- name: Associate user role to yanhua-dev
+  hosts: deploy
+  connection: local
+  tasks:
+    - os_user_role:
+        cloud: bjicp01
+        user: yanhua-dev
+        role: user
+        project: yanhua
+  tags: user
+
+- name: Configure quota for project yanhua
+  hosts: deploy
+  connection: local
+  tasks:
+    - os_quota:
+        cloud: bjicp01
+        name: yanhua
+        cores: 200
+        ram: 532480
+        instances: 70
+        gigabytes: 8192
+        volumes: 40
+        network: 8
+        floatingip: 10
+        security_group: 2
+  tags: quota
+
+- name: Inform the installer
+  hosts: deploy
+  connection: local
+  tasks:
+    - debug:
+        msg: >-
+          The work load started at {{ hostvars.deploy.starttime.time }},
+          ended at {{ ansible_date_time.time }}
+  tags: info

@@ -1,0 +1,24 @@
+clouds:
+  rdenv:
+    auth:
+      username: << username >>
+      password: << password >>
+      project_name: << project >>
+      auth_url: << url >>
+      domain_id: << domain >>
+    region_name: << region >>
+    verify: False
+    identity_api_version: 3
+
+# Example
+#clouds:
+#  rdenv:
+#    auth:
+#      username: xiett
+#      password: xiett
+#      project_name: xiett
+#      auth_url: "https://10.110.25.117:5000/v3"
+#      domain_id: default
+#    region_name: RegionOne
+#    verify: False
+#    identity_api_version: 3
