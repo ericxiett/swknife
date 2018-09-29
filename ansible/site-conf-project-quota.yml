@@ -8,37 +8,37 @@
         starttime: '{{ ansible_date_time }}'
   tags: info
 
-- name: Create user yanhua-dev
+- name: Create user test-dev
   hosts: deploy
   connection: local
   tasks:
     - os_user:
-        cloud: bjicp01
+        cloud: rdenv
         state: present
-        name: yanhua-dev
+        name: test-dev
         password: Rk5mSdwO83eI
-        email: yanhua-dev@advantech.com
-        default_project: yanhua
+        email: test-dev@advantech.com
+        default_project: test
   tags: user
 
-- name: Associate user role to yanhua-dev
+- name: Associate user role to test-dev
   hosts: deploy
   connection: local
   tasks:
     - os_user_role:
-        cloud: bjicp01
-        user: yanhua-dev
+        cloud: rdenv
+        user: test-dev
         role: user
-        project: yanhua
+        project: test
   tags: user
 
-- name: Configure quota for project yanhua
+- name: Configure quota for project test
   hosts: deploy
   connection: local
   tasks:
     - os_quota:
-        cloud: bjicp01
-        name: yanhua
+        cloud: rdenv
+        name: test
         cores: 200
         ram: 532480
         instances: 70

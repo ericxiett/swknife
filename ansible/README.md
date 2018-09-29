@@ -13,12 +13,17 @@
     # Add Pike repository
     $ add-apt-repository cloud-archive:pike
     $ apt update
-    # Install openstacksdk,os-client-config,shade
-    $ apt install python-openstacksdk python-os-client-config python-shade
+    $ apt install python-pip virtualenv
+    $ virtualenv swknife-dev
+    $ . swknife-dev/bin/activate
+    $ pip install openstacksdk==0.9.17
+    $ pip install os-client-config==1.28.0
+    $ pip install shade==1.10.0
     ```
 * Configure clouds.yaml
     ``` bash
-    $ mkdir -p /etc/openstack
+    $ git clone https://github.com/ericxiett/swknife.git
+    $ cd swknife/ansible
     $ vim /etc/openstack/clouds.yaml
     clouds:
       rdenv:
@@ -31,11 +36,18 @@
         region_name: << region >>
         verify: False
         identity_api_version: 3
+        identity_interface: internal
+        volumev3_interface: internal
+        compute_interface: internal
+        network_interface: internal
+        image_interface: internal
     # Replace related variables
     ```
 ### Use
 ``` bash
-$ git clone https://github.com/ericxiett/swknife.git
-$ cd swknife/ansible
 $ ansible-playbook sit-conf-project-quota.yml
 ```
+
+### Q && A
+* The error was: AttributeError: 'OperatorCloud' object has no attribute 'get_volume_quotas'
+A: shade >= 1.10.0

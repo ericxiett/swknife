@@ -9,6 +9,11 @@ clouds:
     region_name: << region >>
     verify: False
     identity_api_version: 3
+    identity_interface: internal
+    volumev3_interface: internal
+    compute_interface: internal
+    network_interface: internal
+    image_interface: internal
 
 # Example
 #clouds:
