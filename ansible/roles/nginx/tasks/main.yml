@@ -1,0 +1,10 @@
+---
+
+- name: Replace nginx conf
+  template:
+    src: configmap.yaml.j2
+    dest: /root/iop/openstack/configmap.yaml
+
+- name: Delete old pod
+  shell: |
+    kubectl delete pod $(kubectl get pods -n iop | grep openstack | awk -F' ' '{print $1}') -n iop

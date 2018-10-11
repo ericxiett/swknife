@@ -1,0 +1,41 @@
+---
+
+- name: Get state timestamp
+  hosts: deploy
+  connection: local
+  tasks:
+    - set_fact:
+        starttime: '{{ ansible_date_time }}'
+
+- name: Change public endpoint with domain name instead of IP
+  hosts: deploy
+  connection: local
+  tasks:
+    - os_keystone_endpoint:
+        cloud: rdenv
+        service: '{{ item.svc }}'
+        endpoint_interface: public
+        url: '{{ item.url }}'
+        region: RegionOne
+        state: present
+      with_items:
+        - { svc: 'glance', url: '{{ domain_name }}/glance' }
+        - { svc: 'nova', url: '{{ domain_name }}/nova' }
+        - { svc: 'neutron', url: '{{ domain_name }}/neutron' }
+        - { svc: 'keystone', url: '{{ domain_name }}/keystone' }
+        - { svc: 'cinder', url: '{{ domain_name }}/cinder' }
+
+- name: Modify nginx conf and enable it
+  hosts: nginx
+  user: root
+  roles:
+    - nginx
+
+- name: Inform installer
+  hosts: deploy
+  connection: local
+  tasks:
+    - debug:
+        msg: >-
+          The workload started at {{ hostvars.deploy.starttime.time }}
+          ended at {{ ansible_date_time.tim }}

@@ -8,7 +8,7 @@ from keystoneauth1 import loading, session
 # Global variables
 from novaclient import client
 
-AUTH_URL = 'http://10.200.0.20:35357/v3'
+AUTH_URL = 'http://10.10.10.20:35357/v3'
 USERNAME = 'ptest'
 PASSWORD = 'ptest'
 PROJECT_NAME = 'ptest'
