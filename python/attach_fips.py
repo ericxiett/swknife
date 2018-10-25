@@ -79,8 +79,9 @@ def create_floatingipaddr(network_id):
     neutron_client = get_neutron_client()
     fip = neutron_client.create_floatingip(body).get('floatingip')
     fip_address = fip.get('floating_ip_address')
+    fip_id = fip.get('id')
     print('The new floating ip created: %s' % fip_address)
-    return fip_address
+    return fip_address, fip_id
 
 
 def floatingip_to_server(server_uuid, floatingip):
@@ -121,12 +122,12 @@ def attach_fips_to_instances():
         fixed_ips, floating_ips = get_instance_by_id(ins_uuid)
 
         if len(floating_ips) == 0:
-            print('\n===========')
+            print('===========')
             # No floating ip, Need to attach one.
-            fip = create_floatingipaddr(FLOATINGIP_NETID)
-            floatingip_to_server(ins_uuid, fip)
-            print('\n===========')
-            line = ins_uuid + ' ' + fip + '\n'
+            fip_addr, fip_id = create_floatingipaddr(FLOATINGIP_NETID)
+            floatingip_to_server(ins_uuid, fip_addr)
+            print('===========')
+            line = ins_uuid + ' ' + fip_id + ' ' + fip_addr + '\n'
             # Then record this on backup file.
             # And detach it after scanning
             with open('backup.txt', 'a+') as f:
@@ -156,9 +157,10 @@ def restore_by_backup():
         lines = f.readlines()
         for line in lines:
             server_uuid = line.split(' ')[0]
-            fip_addr = line.split(' ')[1]
+            fip_id = line.split(' ')[1]
+            fip_addr = line.split(' ')[2].strip('\n')
             detach_fip(server_uuid, fip_addr)
-            release_fip(fip_addr)
+            release_fip(fip_id)
 
 
 def main():
