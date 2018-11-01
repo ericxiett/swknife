@@ -3,14 +3,14 @@
 import os
 import sys
 import subprocess,re
-
 import xlrd
-from keystoneauth1 import loading, session
 
-# Global variables
+from keystoneauth1 import loading, session
 from keystoneauth1 import identity
 from neutronclient.v2_0 import client as neutronc
 from novaclient import client as novac
+
+# Global variables
 
 VALID_SUBCOMMANDS = ['attach', 'restore']
 
