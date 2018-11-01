@@ -1,4 +1,5 @@
 import sys
+import time
 
 import xlrd
 import xlwt
@@ -326,6 +327,7 @@ def main():
     elif subcmd == 'add':
         ext_new_net = sys.argv[2]
         add_routers_extgw(ext_new_net)
+        time.sleep(30)
         get_used_ips_in_newextnet(ext_new_net)
 
 
