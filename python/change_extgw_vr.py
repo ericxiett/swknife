@@ -24,9 +24,9 @@ UPDATE_ROUTER_FILE = 'update_router.xls'
 UPDATE_USEDIP_FILE = 'update_usedip.xls'
 
 VALID_SUBCMD = ['clear', 'add']
-VR_FIELDS = ['index', 'project_id', 'project_name', 'router_id', 'router_name', 'extgw_net', 'extgw_port', 'extgw_ip']
-FIP_FIELDS = ['index', 'floatingip_addr', 'floatingip_id', 'instance_name', 'instance_uuid']
-USEDIP_FIELDS = ['index', 'ip', 'port_id', 'device_owner', 'project_id', 'project_name']
+VR_FIELDS = ['index', 'project_id', 'router_id', 'extgw_net', 'extgw_port', 'extgw_ip']
+FIP_FIELDS = ['index', 'floatingip_addr', 'floatingip_id', 'instance_uuid']
+USEDIP_FIELDS = ['index', 'ip', 'port_id', 'device_owner', 'project_id']
 
 
 def get_neutron_client():
@@ -84,25 +84,25 @@ def get_routers(exist_net):
     routers = []
     for rt in routers_list.get('routers'):
         router_id = rt.get('id')
-        router_name = rt.get('name')
+        # router_name = rt.get('name')
         if not rt.get('external_gateway_info'):
-            print('name %s id %s no external gateway' % (router_name, router_id))
+            print('id %s no external gateway' % router_id)
             continue
         extgw_net = rt.get('external_gateway_info').get('network_id')
         if extgw_net != exist_net:
-            print('name %s have no %s external gateway but %s' % (router_name, exist_net, extgw_net))
+            print('name %s have no %s external gateway but %s' % (router_id, exist_net, extgw_net))
             continue
         project_id = rt.get('project_id')
-        project_name = get_project_name_by_id(project_id)
+        # project_name = get_project_name_by_id(project_id)
         extgw_ip = rt.get('external_gateway_info').get('external_fixed_ips')[0].get('ip_address')
         extgw_port = get_port_by_ip(extgw_ip, extgw_net)
-        print('project %s router %s gwip %s port %s' % (project_name, router_name, extgw_ip, extgw_port))
+        print('project %s router %s gwip %s port %s' % (project_id, router_id, extgw_ip, extgw_port))
 
         routers.append({
             'project_id': project_id,
-            'project_name': project_name,
+            # 'project_name': project_name,
             'router_id': router_id,
-            'router_name': router_name,
+            # 'router_name': router_name,
             'extgw_net': extgw_net,
             'extgw_port': extgw_port,
             'extgw_ip': extgw_ip
@@ -121,7 +121,7 @@ def get_instance_by_fixip(fixip, fip_addr):
                 for ad in value:
                     addrs.append(ad.get('addr'))
         if fixip in addrs and fip_addr in addrs:
-            return vm.name, vm.id
+            return vm.id
 
     return None, None
 
@@ -135,20 +135,20 @@ def get_floatingips(exist_net):
         floatingip_id = floatingip.get('id')
 
         # If have fixed_ip, the floating ip is associate to instance. Need to record
-        instance_name = None
-        instance_uuid = None
+        # instance_name = None
+        instance_uuid = 'na'
         if fixed_ip_address:
-            instance_name, instance_uuid = get_instance_by_fixip(
+            instance_uuid = get_instance_by_fixip(
                 fixed_ip_address, floating_ip_address)
 
         floatingips.append({
             'floating_ip_address': floating_ip_address,
             'floatingip_id': floatingip_id,
-            'instance_name': instance_name,
+            # 'instance_name': instance_name,
             'instance_uuid': instance_uuid
         })
 
-        print('floating ip %s instance %s' % (floating_ip_address, instance_name))
+        print('floating ip %s instance %s' % (floating_ip_address, instance_uuid))
 
     return floatingips
 
@@ -191,12 +191,12 @@ def build_routers_sheet(routers):
     for vr in routers:
         ws.write(index, 0, index, style1)
         ws.write(index, 1, vr.get('project_id'), style1)
-        ws.write(index, 2, vr.get('project_name'), style1)
-        ws.write(index, 3, vr.get('router_id'), style1)
-        ws.write(index, 4, vr.get('router_name'), style1)
-        ws.write(index, 5, vr.get('extgw_net'), style1)
-        ws.write(index, 6, vr.get('extgw_port'), style1)
-        ws.write(index, 7, vr.get('extgw_ip'), style1)
+        # ws.write(index, 2, vr.get('project_name'), style1)
+        ws.write(index, 2, vr.get('router_id'), style1)
+        # ws.write(index, 4, vr.get('router_name'), style1)
+        ws.write(index, 3, vr.get('extgw_net'), style1)
+        ws.write(index, 4, vr.get('extgw_port'), style1)
+        ws.write(index, 5, vr.get('extgw_ip'), style1)
         index += 1
 
     wb.save(BACKUP_ROUTER_FILE)
@@ -219,8 +219,8 @@ def build_floatingips_sheet(floatingips):
         ws.write(index, 0, index, style1)
         ws.write(index, 1, fip.get('floating_ip_address'), style1)
         ws.write(index, 2, fip.get('floatingip_id'), style1)
-        ws.write(index, 3, fip.get('instance_name'), style1)
-        ws.write(index, 4, fip.get('instance_uuid'), style1)
+        # ws.write(index, 3, fip.get('instance_name'), style1)
+        ws.write(index, 3, fip.get('instance_uuid'), style1)
         index += 1
 
     wb.save(BACKUP_FLP_FILE)
@@ -243,24 +243,24 @@ def add_routers_extgw(ext_new_net):
     neutron_client = get_neutron_client()
     index = 1
     for row in range(1, sh.nrows):
-        vr_id = str(int(sh.cell_value(row, VR_FIELDS.index('router_id'))))
-        print('[dbg]vr_id: %s' % vr_id)
+        vr_id = str(sh.cell_value(row, VR_FIELDS.index('router_id')))
+        # print('[dbg]vr_id: %s' % vr_id)
         body = {'network_id': ext_new_net}
         vr_info = neutron_client.add_gateway_router(vr_id, body).get('router')
         extgw_info = vr_info.get('external_gateway_info')
         ws.write(index, 0, index, style1)
         ws.write(index, 1, vr_info.get('project_id'), style1)
-        project_name = get_project_name_by_id(vr_info.get('project_id'))
-        ws.write(index, 2, project_name, style1)
-        ws.write(index, 3, vr_info.get('id'), style1)
-        ws.write(index, 4, vr_info.get('name'), style1)
+        # project_name = get_project_name_by_id(vr_info.get('project_id'))
+        # ws.write(index, 2, project_name, style1)
+        ws.write(index, 2, vr_info.get('id'), style1)
+        # ws.write(index, 4, vr_info.get('name'), style1)
         extgw_net = extgw_info.get('network_id')
-        ws.write(index, 5, extgw_net, style1)
+        ws.write(index, 3, extgw_net, style1)
         extgw_ip = extgw_info.get('external_fixed_ips')[0].get('ip_address')
         extgw_port = get_port_by_ip(extgw_ip, extgw_net)
-        ws.write(index, 6, extgw_port, style1)
-        ws.write(index, 7, extgw_ip, style1)
-        print('project %s router %s gwip %s port %s' % (project_name, vr_info.get('name'), extgw_ip, extgw_port))
+        ws.write(index, 4, extgw_port, style1)
+        ws.write(index, 5, extgw_ip, style1)
+        print('project %s router %s gwip %s port %s' % (vr_info.get('project_id'), vr_info.get('id'), extgw_ip, extgw_port))
         index += 1
 
     wb.save(UPDATE_ROUTER_FILE)
@@ -284,10 +284,10 @@ def get_used_ips_in_newextnet(ext_new_net):
         port_id = port.get('id')
         port_ip = port.get('fixed_ips')[0].get('ip_address')
         project_id = port.get('project_id')
-        if project_id:
-            project_name = get_project_name_by_id(project_id)
-        else:
-            project_name = None
+        # if project_id:
+        #     project_name = get_project_name_by_id(project_id)
+        # else:
+        #     project_name = None
         device_owner = port.get('device_owner')
         print('ip %s used for %s' % (port_ip, device_owner))
 
@@ -296,7 +296,7 @@ def get_used_ips_in_newextnet(ext_new_net):
         ws.write(index, 2, port_id, style1)
         ws.write(index, 3, device_owner, style1)
         ws.write(index, 4, project_id, style1)
-        ws.write(index, 5, project_name, style1)
+        # ws.write(index, 5, project_name, style1)
 
         index += 1
 
