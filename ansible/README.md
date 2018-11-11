@@ -44,10 +44,11 @@
         image_interface: internal
     # Replace related variables
     ```
+
 ### Use
 
-``` bash
-$ ansible-playbook sit-conf-project-quota.yml
+```bash
+ansible-playbook sit-conf-project-quota.yml
 ```
 
 ### Q && A
