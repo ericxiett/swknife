@@ -3,6 +3,7 @@
 ## Configure project quota
 
 ### Install
+
 * Find one vm or dedicated server that can link OpenStack API
 * Install dependencies(example on ubuntu 16.04)
     ``` bash
@@ -44,10 +45,12 @@
     # Replace related variables
     ```
 ### Use
+
 ``` bash
 $ ansible-playbook sit-conf-project-quota.yml
 ```
 
 ### Q && A
+
 * The error was: AttributeError: 'OperatorCloud' object has no attribute 'get_volume_quotas'
 A: shade >= 1.10.0
