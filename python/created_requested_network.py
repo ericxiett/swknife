@@ -121,6 +121,9 @@ class Network(object):
         if self.dns and len(self.dns) > 0:
             subnet.update({"dns_nameservers": self.dns})
 
+        if self.disable_dhcp:
+            subnet.update({"enable_dhcp": False})
+
         if not self.disable_gw and self.gw:
             subnet.update({"gateway_ip": self.gw})
 
