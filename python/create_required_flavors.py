@@ -242,7 +242,7 @@ def get_parser():
     import argparse
 
     parser = argparse.ArgumentParser(description='generate required flavors')
-    parser.add_argument('--config', dest='config_path', required=True,
+    parser.add_argument('-f', '--config', dest='config_path', required=True,
                         help='path to the configuration file')
     parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True,
                         default=False, help='enable debugging')
