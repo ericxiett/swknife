@@ -108,16 +108,17 @@ class Network(object):
 
     @property
     def network(self):
-        network = {"network": {
-            "name": self.network_name,
-            # fixme configurable or not?
-            "provider:network_type": "vlan",
-            # fixme configrable or not?
-            "provider:physical_network": "physnet1",
-            "provider:segmentation_id": self.vlanid,
-            "shared": True,
-            "router:external": True
-        }}
+        network = {
+            "network": {
+                "name": self.network_name,
+                # fixme configurable or not?
+                "provider:network_type": "vlan",
+                # fixme configrable or not?
+                "provider:physical_network": "physnet1",
+                "provider:segmentation_id": self.vlanid,
+                "shared": True,
+                "router:external": True
+            }}
 
         return network
 
