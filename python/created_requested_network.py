@@ -12,7 +12,7 @@ from xlrd import open_workbook
 
 DEFAULT_SPEC = "general"
 LOGGER = None
-COLUME_NAME = ["service", "network_name", "subnet_name", "cidr", "disable_dhcp", "ip_pool", "vlanid", 'disable_gw',
+COLUME_NAME = ["service", "network_name", "subnet_name", "cidr", "ip_pool", "vlanid", "disable_dhcp", 'disable_gw',
                'gw', 'dns']
 MAX_COLUMNS = len(COLUME_NAME)
 
@@ -34,7 +34,7 @@ class Network(object):
     network object
     """
 
-    def __init__(self, service, network_name, subnet_name, cidr, ip_pool, vlanid, disable_dhcp=False, disable_gw=False,
+    def __init__(self, service, network_name, subnet_name, cidr, ip_pool, vlanid, disable_dhcp=u'否', disable_gw=u'否',
                  gw=None, dns=None):
         """
 
@@ -50,15 +50,27 @@ class Network(object):
         :param dns:
         """
 
+        # fixme input error?
         self.service = service
         self.network_name = network_name
         self.subnet_name = subnet_name
         self.cidr = cidr
-        self.disable_dhcp = disable_dhcp
+
+        # disable dhcp
+        if re.search(u'是', disable_dhcp):
+            self.disable_dhcp = True
+        else:
+            self.disable_dhcp = False
+
         self.ip_pool = ip_pool
-        self.vlanid = vlanid
-        self.disable_gw = disable_gw
-        self.disable_dhcp = disable_dhcp
+        self.vlanid = str(int(vlanid)) if isinstance(vlanid, float) else vlanid
+
+        # disable gateway
+        if re.search(u'是', disable_gw):
+            self.disable_gw = True
+        else:
+            self.disable_gw = False
+
         self.gw = gw
         self.dns = dns
 
@@ -69,24 +81,26 @@ class Network(object):
 
         logger = get_logger()
 
+        # fixme network_name may be similar, change it to exact match
         networks = neutron_client.list_networks(name=self.network_name).get('networks')
 
         # create network if not existing
         if len(networks) == 0:
             # create this network
-            network = networks[0]
+            network = neutron_client.create_network(self.network).get('network')
         elif len(networks) == 1:
             # already exist
-            network = neutron_client.create_network(self.network)
+            network = networks[0]
         else:
             raise Exception("There are multiple networks with same name, please check config")
 
         # create subnet if not existings
-        subnets = neutron_client.list_subnets({
-            "network_id": network.get('id'),
-            "name": self.subnet_name
-        })
+        logger.info("network id: %s", network.get('id'))
+        subnets = neutron_client.list_subnets(**{
+            "network_id": network.get('id')
+        }).get('subnets')
 
+        logging.info("subnets obtained %s", str(subnets))
         if len(subnets) == 0:
             neutron_client.create_subnet(self.get_subnet(network.get('id')))
         else:
@@ -96,14 +110,13 @@ class Network(object):
     def network(self):
         network = {"network": {
             "name": self.network_name,
-
             # fixme configurable or not?
             "provider:network_type": "vlan",
-
             # fixme configrable or not?
             "provider:physical_network": "physnet1",
             "provider:segmentation_id": self.vlanid,
-            "shared": True
+            "shared": True,
+            "router:external": True
         }}
 
         return network
@@ -119,13 +132,16 @@ class Network(object):
         }
 
         if self.dns and len(self.dns) > 0:
-            subnet.update({"dns_nameservers": self.dns})
+            subnet['subnet'].update({"dns_nameservers": self.dns.replace(u'，', ',').split(',')})
 
         if self.disable_dhcp:
-            subnet.update({"enable_dhcp": False})
+            subnet['subnet'].update({"enable_dhcp": False})
 
         if not self.disable_gw and self.gw:
-            subnet.update({"gateway_ip": self.gw})
+            subnet['subnet'].update({"gateway_ip": self.gw})
+
+        if self.disable_gw:
+            subnet['subnet'].update({"gateway_ip": None})
 
         return subnet
 
@@ -141,7 +157,7 @@ def read_template_from_excel(config_path):
         raise Exception("path: %s does not exist!", config_path)
 
     logger = get_logger()
-    flavors = []
+    networks = []
 
     logger.info("read configuration from %s", config_path)
     wb = open_workbook(config_path)
@@ -159,16 +175,15 @@ def read_template_from_excel(config_path):
             if col > MAX_COLUMNS:
                 break
 
-            # fixme value might have letter like 'G'
             val = sheet.cell(row, col).value
             args[COLUME_NAME[col]] = val
 
         logger.info("args: %s", str(args))
-        flavors.append(Network(**args))
+        networks.append(Network(**args))
 
-    logger.info("retrieve %s records from %s", str(flavors), config_path)
+    logger.info("retrieve %s records from %s", str(networks), config_path)
     # return a list of Flavors
-    return flavors
+    return networks
 
 
 def create_networks(neutron_client, networks):
