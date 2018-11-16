@@ -15,6 +15,7 @@ LOGGER = None
 COLUME_NAME = ["service", "network_name", "subnet_name", "cidr", "ip_pool", "vlanid", "disable_dhcp", 'disable_gw',
                'gw', 'dns']
 MAX_COLUMNS = len(COLUME_NAME)
+DEFAULT_NIC = "physnet1"
 
 
 def get_logger():
@@ -104,7 +105,7 @@ class Network(object):
         if len(subnets) == 0:
             neutron_client.create_subnet(self.get_subnet(network.get('id')))
         else:
-            logger.warning("subnet: %s is duplicate", self.subnet_name)
+            logger.warning("subnet: %s is duplicate, maybe it has been created already?", self.subnet_name)
 
     @property
     def network(self):
@@ -114,7 +115,7 @@ class Network(object):
                 # fixme configurable or not?
                 "provider:network_type": "vlan",
                 # fixme configrable or not?
-                "provider:physical_network": "physnet1",
+                "provider:physical_network": DEFAULT_NIC,
                 "provider:segmentation_id": self.vlanid,
                 "shared": True,
                 "router:external": True

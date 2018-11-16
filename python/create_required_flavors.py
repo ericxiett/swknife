@@ -165,6 +165,23 @@ def read_template_from_excel(config_path):
     return flavors
 
 
+def get_flavor(nova_client, flavor_name):
+    """
+    get flavor by its name
+    :param nova_client:
+    :param flavor_name:
+    :return:
+    """
+
+    flavors = nova_client.flavors.list(detailed=False)
+
+    for flavor in flavors:
+        if flavor.name == flavor_name:
+            return flavor
+
+    return None
+
+
 def create_flavors(nova_client, flavors):
     """
     create all required flavors
@@ -187,9 +204,14 @@ def create_flavors(nova_client, flavors):
         memory = int(_flavor.memory) * 1024
         disk = _flavor.disk
 
-        flavor = nova_client.flavors.create(name, memory, cpu, disk)
+        flavor = get_flavor(nova_client, name)
+        if flavor:
+            logger.warning("flavor: %s already exists", name)
+        else:
+            flavor = nova_client.flavors.create(name, memory, cpu, disk)
 
         # fixme spec might change later
+        # set method should be idempotent
         flavor.set_keys({
             "SPEC": _flavor.spec[0].upper(),
             "SERVICE": _flavor.name.upper()
