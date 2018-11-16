@@ -145,7 +145,27 @@ class Network(object):
         if self.disable_gw:
             subnet['subnet'].update({"gateway_ip": None})
 
+        if self.ip_pool:
+            pool = self.ip_pool.replace(u'，', ',').replace(u'；', ";").rstrip(';')
+            subnet['subnet'].update(
+                {"allocation_pools": [dict_zip(i.split(',')[0:2], ['start', 'end']) for i in pool.split(';')]})
+
         return subnet
+
+
+def dict_zip(a, b):
+    """
+    take two list [a,b,c] and [d,e,f]
+    and return a dict {a:d, b:e, c:f}
+    :param a:
+    :param b:
+    :return:
+    """
+    min_len = len(b) if len(b) < len(a) else len(a)
+    ret = {}
+    for i in range(min_len):
+        ret[b[i]] = a[i]
+    return ret
 
 
 def read_template_from_excel(config_path):
