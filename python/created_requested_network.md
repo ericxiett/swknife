@@ -10,5 +10,5 @@
   * router:external=True, provider:network_type=vlan, shared=True
   * pass in network name, subnet name, cidr, ...
   * disable dhcp? disable gw? use dns nameservers?
-  * ip(allocation) pool?
+  * ip(allocation) pool? [{"start": xxx, "end": xxx}, ...]
 4. Exception handling
