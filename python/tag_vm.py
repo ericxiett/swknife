@@ -67,7 +67,6 @@ class Server(object):
                 if re.match(self.name, one.name):
                     servers.append(one)
 
-
         # tag this vm
         for concise_server in servers:
             tag_list = [i for i in nova_client.servers.tag_list(concise_server)]
