@@ -223,7 +223,11 @@ def create_networks(neutron_client, networks):
 
     for network in networks:
         logger.info("create network %s", str(network))
-        network.create_network(neutron_client)
+        try:
+            network.create_network(neutron_client)
+            logger.info('successfully create network:subnet %s:%s', network.network_name, network.subnet_name)
+        except Exception:
+            logger.exception("create network:subnet %s:%s failed", network.network_name, network.subnet_name)
 
 
 def init_neutron_client(credentials):

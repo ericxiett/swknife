@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import re
 import logging
 import os
 from xlrd import open_workbook
@@ -35,6 +36,12 @@ class Server(object):
         self.name = name
         self.tag = tag
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "%s_%s_%s" % (self.id, self.name, self.tag)
+
     def tag_vm(self, nova_client):
         """
         tag vm
@@ -42,6 +49,7 @@ class Server(object):
         :return:
         """
 
+        logger = get_logger()
         # fixme openstack does not support normal regex
         # instead it uses database style (mysql...)
         servers = nova_client.servers.list(detailed=False, search_opts={"name": self.name, "all_tenants": True})
@@ -50,11 +58,23 @@ class Server(object):
             # this trick utilizes the fact only id attribute is required for this get method
             servers = [nova_client.servers.get(self)]
 
+        if len(servers) == 0:
+            # this method might be redundant, nova may support regex natively?
+            # fixme Number of servers > default limit?
+            logger.info('searching through all existing vms, this could be heavy')
+            all_servers = nova_client.servers.list(detailed=False, search_opts={"all_tenants": True})
+            for one in all_servers:
+                if re.match(self.name, one.name):
+                    servers.append(one)
+
         # tag this vm
         for concise_server in servers:
             tag_list = [i for i in nova_client.servers.tag_list(concise_server)]
             if self.tag not in tag_list:
+                logger.info('create tag %s for vm %s (%s)', self.tag, self.name, concise_server.id)
                 nova_client.servers.add_tag(concise_server, self.tag)
+            else:
+                logger.info('vm: %s(%s) already has tag: %s', self.name, concise_server.id, self.tag)
 
     @classmethod
     def create(cls, name, tag):
@@ -102,14 +122,13 @@ def tag_vm(nova_client, vms):
     :return:
     """
 
-    # all_servers = nova_client.servers.list(detailed=False, search_opts={"all_tenants": True, "name": "ruby"})
-    # for i in all_servers:
-    #     nova_client.servers.add_tag(i, 'sjt-test')
-    #     for tag in nova_client.servers.tag_list(i):
-    #         print dir(tag), type(tag), tag
-
+    logger = get_logger()
     for vm in vms:
-        vm.tag_vm(nova_client)
+        try:
+            logger.info('start dealing with %s', vm.name)
+            vm.tag_vm(nova_client)
+        except Exception as e:
+            logger.exception("add tag to vm: %s failed", str(vm))
 
 
 def init_nova_client(credentials):
