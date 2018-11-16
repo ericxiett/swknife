@@ -1,10 +1,24 @@
 ---
 
+- name: Install Nginx On Centos
+  yum:
+    name: nginx
+    state: present
+  when: 
+    - ansible_distribution == "CentOS"
+
+- name: Install Nginx On Ubuntu
+  apt:
+    name: nginx
+    state: present
+  when: 
+    - ansible_distribution == "Ubuntu"
+
 - name: Replace nginx conf
   template:
-    src: configmap.yaml.j2
-    dest: /root/iop/openstack/configmap.yaml
+    src: openstack.conf.j2
+    dest: /etc/nginx/nginx.conf/oipenstack.conf
 
-- name: Delete old pod
+- name: Restart Nginx Service
   shell: |
-    kubectl delete pod $(kubectl get pods -n iop | grep openstack | awk -F' ' '{print $1}') -n iop
+    systemctl restart nginx
