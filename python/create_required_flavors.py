@@ -196,26 +196,41 @@ def create_flavors(nova_client, flavors):
     logger = get_logger()
 
     for _flavor in flavors:
-        logger.info("create flavor %s", str(_flavor))
-        name = str(_flavor)
-        cpu = _flavor.cpu
+        try:
+            create_flavor(nova_client, _flavor)
+        except Exception as e:
+            logger.exception("create flavor: %s failed", str(_flavor))
 
-        # by convention, memory is in GB
-        memory = int(_flavor.memory) * 1024
-        disk = _flavor.disk
 
-        flavor = get_flavor(nova_client, name)
-        if flavor:
-            logger.warning("flavor: %s already exists", name)
-        else:
-            flavor = nova_client.flavors.create(name, memory, cpu, disk)
+def create_flavor(nova_client, flavor):
+    """
+    create a flavor
+    :param nova_client:
+    :param flavor:
+    :return:
+    """
 
-        # fixme spec might change later
-        # set method should be idempotent
-        flavor.set_keys({
-            "SPEC": _flavor.spec[0].upper(),
-            "SERVICE": _flavor.name.upper()
-        })
+    logger = get_logger()
+    logger.info("create flavor %s", str(flavor))
+    name = str(flavor)
+    cpu = flavor.cpu
+
+    # by convention, memory is in GB
+    memory = int(flavor.memory) * 1024
+    disk = flavor.disk
+
+    _flavor = get_flavor(nova_client, name)
+    if _flavor:
+        logger.warning("flavor: %s already exists", name)
+    else:
+        _flavor = nova_client.flavors.create(name, memory, cpu, disk)
+
+    # fixme spec might change later
+    # set method should be idempotent
+    _flavor.set_keys({
+        "SPEC": flavor.spec[0].upper(),
+        "SERVICE": flavor.name.upper()
+    })
 
 
 def init_nova_client(credentials):
