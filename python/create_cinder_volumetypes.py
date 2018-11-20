@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import logging
 import os
 import xlrd
 import random
@@ -18,20 +17,6 @@ PROJECT_NAME = 'admin'
 DOMAIN_NAME = 'Default'
 DOMAIN_ID = 'default'
 VERSION = '3'
-
-ERROR_CREATE = "Create volume_type Failed."
-ERROR_DELETE = "Delete volume_type failed."
-ERROR_METADATA = "Set Metadata Failed."
-ERROR_HOST = "Add  Failed:"
-STATUS_SUCCESS = "SUCCESS"
-STATUS_FAILED = "FAILED"
-STATUS_HOST_ERROR = "volume_type ERROR"
-
-
-def read_excel():
-    ExcelFile = xlrd.open_workbook('VolumeType.xlsx')
-    print(ExcelFile.sheet_names())
-    return
 
 
 def main():
@@ -52,11 +37,11 @@ def init_check(XLS_FILE):
     else:
         print('Error: volumetype config file' + XLS_FILE + 'is not exit')
         return 0
-    #get cinder_client
+    # get cinder_client
     cinder = get_cinder_client()
-    #get all old volumetypes
+    # get all old volumetypes
     vtypeList = cinder.volume_types.list()
-    #delete exited volumetypes
+    # delete exited volumetypes
     try:
         print("Warning:Deleting all exited Volume_Types")
         for volume_types in vtypeList:
@@ -72,9 +57,9 @@ def init_check(XLS_FILE):
         print("Warning:renaming Volume_Types: " + vtname + " as " + rename)
         renaming(volume_types=volume_types, rename=rename)
         print("------------------------------------------")
-    #init finish
+    # init finish
     print("Info: Init the Envionment finished.Operate volume_types Information.")
-    #create volumtypes
+    # create volumtypes
     operate_vt_info(sheet=sheet)
 
 
@@ -89,18 +74,20 @@ def vt_delete(volume_types):
         return 0
 
 
+# def volume_retype(volumes):
+#     try:
+#         volumes.retype()
+#     except Exception as e:
+#         print(e.message)
+
+
 def renaming(volume_types, rename):
     try:
         cinder = get_cinder_client()
-        #maybe some volumetypes attached on volumes, so we delete them all
-        # if len(volumes) > 0:
-        #     for name in volumes:
-        #         print("remove exited volumes"+name)
-        #         cinder.volume.delete(volume=volumes)
         cinder.volume_types.update(volume_type=volume_types, name=rename)
         return 1
     except Exception as e:
-        print("Error: Something wrong when remove hosts and delete Hg:" + volume_types.name)
+        print("Error: Something wrong when renaming volume_types:" + volume_types.name)
         print(e.message)
         return 0
 
@@ -118,15 +105,10 @@ def get_cinder_client():
 
 
 def operate_vt_info(sheet):
-    # information result
-    result = []
-    # check every row
-    cinder = get_cinder_client()
     for row in range(1, sheet.nrows):
         vt_name = sheet.cell_value(row, 0)
         backend_name = sheet.cell_value(row, 1)
-        status = STATUS_SUCCESS
-        #create volumetypes
+        # create volumetypes
         print("Info: Create volume_type:"+vt_name+"..Waiting")
         try:
             volumetype = create_volume_types(name=vt_name)
@@ -135,7 +117,7 @@ def operate_vt_info(sheet):
             print("Error: Create volume_Type:" + vt_name+ "failed. Please check")
             print(e.message)
             continue
-        #config metadata
+        # config metadata
         try:
             volumetype = config_service_spec(vt=volumetype, backend_name=backend_name)
             print("Info: Config metadata:"+ vt_name + "success")
@@ -151,7 +133,7 @@ def create_volume_types(name):
 
 
 def config_service_spec(vt, backend_name):
-    #add ceph as rbd back_end
+    # add ceph as rbd back_end
     print("Info: Set metadata:SERVICE")
     vt = set_metadata(vt, "volume_backend_name", backend_name)
     return vt
@@ -159,8 +141,6 @@ def config_service_spec(vt, backend_name):
 
 def set_metadata(vt, key, value):
     metadata = {key: value}
-#    cinder = get_cinder_client()
-#    return cinder.volume_types.set_keys(metadata=metadata)
     return vt.set_keys(metadata=metadata)
 
 
