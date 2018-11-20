@@ -118,7 +118,7 @@ class Network(object):
                 "provider:physical_network": DEFAULT_NIC,
                 "provider:segmentation_id": self.vlanid,
                 "shared": True,
-                "router:external": True
+                "router:external": False
             }}
 
         return network
