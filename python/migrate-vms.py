@@ -5,6 +5,7 @@ import re
 import time
 import logging
 import os
+import xlwt
 from xlrd import open_workbook
 from novaclient import client
 from keystoneauth1 import loading, session
@@ -183,7 +184,6 @@ def is_active(server):
 
 
 class Host(object):
-
     def __init__(self, id, name, vcpus, ram, **kwargs):
         self.id = id
         self.name = name
@@ -218,7 +218,6 @@ class Host(object):
 
 
 class Aggregate(object):
-
     def __init__(self, name, hosts=list()):
         self.name = name
         self.hosts = hosts
@@ -420,6 +419,26 @@ def get_all_servers(nova_client):
     return all_servers
 
 
+def write_vm_to_sheet(vms, sheet):
+    attrs = ['name', 'id', 'service', 'host', DEST]
+
+    for i in range(len(attrs)):
+        sheet.write(0, i, attrs[i])
+
+    for i in range(len(vms)):
+        for j in range(len(attrs)):
+            sheet.write(i + 1, j, getattr(vms[i], attrs[j], ''))
+
+
+def write_to_excel(result, file_name):
+    workbook = xlwt.Workbook()
+    for key in result.keys():
+        sheet = workbook.add_sheet(key)
+        write_vm_to_sheet(result[key], sheet)
+
+    workbook.save(file_name)
+
+
 def get_parser():
     import argparse
 
@@ -430,6 +449,8 @@ def get_parser():
                         default=False, help='enable debugging')
     parser.add_argument('--preview', dest='preview', action='store_const', const=True,
                         default=False, help='preview changes')
+    parser.add_argument('-o', '--output', dest='output',
+                        default='/tmp/output.xls', help='display result in excel (xls)')
 
     return parser.parse_args()
 
