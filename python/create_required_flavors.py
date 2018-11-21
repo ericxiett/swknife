@@ -14,6 +14,7 @@ DEFAULT_SPEC = "general"
 LOGGER = None
 COLUME_NAME = ["name", "cpu", "memory", "disk", "bandwidth", "spec"]
 MAX_COLUMNS = len(COLUME_NAME)
+_FLAVORS = None
 
 
 def get_logger():
@@ -24,7 +25,9 @@ def get_logger():
 
 
 def setup_logging(debug=False):
-    logging.basicConfig(level=logging.INFO)
+    level = logging.DEBUG if debug else logging.INFO
+    logging_format = "[%(asctime)s] - %(levelname)s - %(name)s.%(lineno)s - %(message)s"
+    logging.basicConfig(level=level, format=logging_format)
 
 
 class Flavor(object):
@@ -48,6 +51,8 @@ class Flavor(object):
         self.disk = str(int(disk))
         self.bandwidth = bandwidth if int(bandwidth) else 0
 
+        self.bandwidth = int(bandwidth) if bandwidth > 0 else 0
+
         # fixme spec might be a list of string
         if not spec:
             self.spec = [DEFAULT_SPEC]
@@ -57,6 +62,9 @@ class Flavor(object):
             self.spec = spec.replace(u'，', ',').split(',')
         else:
             self.spec = spec
+
+        logger = get_logger()
+        logger.debug("<%s-%s-%s-%s-%s-%s>", name, cpu, memory, disk, bandwidth, self.spec)
 
     @property
     def service_name(self):
@@ -79,13 +87,14 @@ class Flavor(object):
         return template % (self.name.lower(), self.cpu, self.memory, self.disk, "_".join(self.spec))
 
     @classmethod
-    def create(cls, name, cpu, memory, disk, bandwidth=None, spec=None):
+    def create(cls, name, cpu, memory, disk, bandwidth=0, spec=None):
         """
         create flavors
         :param name:
         :param cpu:
         :param memory:
         :param disk:
+        :param bandwidth
         :param spec:
         :return: return a list of flavors
         """
@@ -110,7 +119,8 @@ def split_string(val):
     :return: a tuple of min, max, step
     """
 
-    pattern = r"，|,"
+    # do not use raw string
+    pattern = ur"，|,"
     if (isinstance(val, str) or isinstance(val, unicode)) and re.search(pattern, val):
         arr = val.replace(u'，', ',').split(',')[0:3]
         a = int(arr[0])
@@ -145,26 +155,46 @@ def read_template_from_excel(config_path):
     # fixme 0-n
     sheet = wb.sheets()[0]
 
-    # ignore the first row
-    for row in range(1, sheet.nrows):
-        args = {}
-        for col in range(sheet.ncols):
+    for sheet in wb.sheets():
+        # ignore the first row
+        for row in range(1, sheet.nrows):
+            args = {}
+            for col in range(sheet.ncols):
 
-            # there should not be more than defined
-            # number of columns
-            if col > MAX_COLUMNS:
-                break
+                # there should not be more than defined
+                # number of columns
+                if col > MAX_COLUMNS:
+                    break
 
-            # fixme value might have letter like 'G'
-            val = sheet.cell(row, col).value
-            args[COLUME_NAME[col]] = val
+                # fixme value might have letter like 'G'
+                val = sheet.cell(row, col).value
+                args[COLUME_NAME[col]] = val
 
-        logger.info("args: %s", str(args))
-        flavors.extend(Flavor.create(**args))
+            logger.info("args: %s", str(args))
+            flavors.extend(Flavor.create(**args))
 
     logger.info("retrieve %s records from %s", str(flavors), config_path)
     # return a list of Flavors
     return flavors
+
+
+def retrieve_all_flavors(nova_client):
+    global _FLAVORS
+    if _FLAVORS:
+        return _FLAVORS
+    else:
+        total_flavors = []
+
+        # return has an upper limit of 1000
+        last_one_marker = None
+        while True:
+            flavors = nova_client.flavors.list(detailed=False, marker=last_one_marker.id if last_one_marker else None)
+            if len(flavors) == 0:
+                break
+            total_flavors.extend(flavors)
+            last_one_marker = flavors[-1]
+        _FLAVORS = total_flavors
+        return _FLAVORS
 
 
 def get_flavor(nova_client, flavor_name):
@@ -175,9 +205,19 @@ def get_flavor(nova_client, flavor_name):
     :return:
     """
 
-    flavors = nova_client.flavors.list(detailed=False)
+    # total_flavors = []
+    #
+    # # return has an upper limit of 1000
+    # last_one_marker = None
+    # while True:
+    #     flavors = nova_client.flavors.list(detailed=False, marker=last_one_marker.id if last_one_marker else None)
+    #     if len(flavors) == 0:
+    #         break
+    #     total_flavors.extend(flavors)
+    #     last_one_marker = flavors[-1]
+    total_flavors = retrieve_all_flavors(nova_client)
 
-    for flavor in flavors:
+    for flavor in total_flavors:
         if flavor.name == flavor_name:
             return flavor
 
@@ -200,7 +240,7 @@ def create_flavors(nova_client, flavors):
     for _flavor in flavors:
         try:
             create_flavor(nova_client, _flavor)
-        except Exception as e:
+        except Exception:
             logger.exception("create flavor: %s failed", str(_flavor))
 
 
@@ -223,26 +263,27 @@ def create_flavor(nova_client, flavor):
 
     _flavor = get_flavor(nova_client, name)
 
-    # delete conflict flavors
+    # remove duplicate flavor
     if _flavor:
-        logger.warning("flavor: %s already exists delete it", name)
+        logger.warning("flavor: %s already exists", name)
         _flavor.delete()
 
-    # create flavor
     _flavor = nova_client.flavors.create(name, memory, cpu, disk)
 
     # set method should be idempotent
+
     flavor_keys = {
         "SPEC": flavor.spec[0].upper(),
-        "SERVICE": flavor.name.upper()
+        "SERVICE": flavor.name
     }
 
-    if flavor.bandwidth != 0:
+    if flavor.bandwidth > 0:
         flavor_keys.update({
             "quota:vif_inbound_average": str(int(flavor.bandwidth * 1024 * 1024)),
-            "quota:vif_outbound_average": str(int(flavor.bandwidth * 1024 * 1024)),
+            "quota:vif_outbound_average": str(int(flavor.bandwidth * 1024 * 1024))
         })
 
+    logger.debug('flavor(%s) keys are %s', str(flavor), flavor_keys)
     _flavor.set_keys(flavor_keys)
 
 
@@ -320,7 +361,9 @@ def main():
     nova_client = init_nova_client({})
 
     # create requested flavors
+    logging.info("start creating flavors")
     create_flavors(nova_client, flavors)
+    logging.info("finishes creating flavors")
     return 0
 
 
