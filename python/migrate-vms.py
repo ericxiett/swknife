@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+from Queue import Queue
 import time
 import logging
 import os
@@ -11,14 +12,21 @@ from novaclient import client
 from keystoneauth1 import loading, session
 
 DEFAULT_TIMEOUT = 10 * 60
+WAITING_QUEUE_MAX_SIZE = 10
 LOGGER = None
 MAX_COLUMNS = 2
 COLUME_NAME = ["name", "tag"]
 DEST = 'dest'
 
+LIVE_MIGRATIBLE_STATES = ['active', 'puased']
+MIGRATIBLE_STATES = ['active', 'shutoff']
+ERROR_STATE = ['error']
+TRANSITIONAL_STATE = 'migrating'
+COMPLETED_STATES = MIGRATIBLE_STATES + LIVE_MIGRATIBLE_STATES
+
 
 def setup_logging(debug=False):
-    logging_format = "%(asctime)s - %(name)s.%(lineno)s - %(levelname)s - %(message)s"
+    logging_format = "%(asctime)s - %(name)10s.%(lineno)4s - %(levelname)5s - %(message)s"
     level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(level=level, format=logging_format)
 
@@ -31,7 +39,7 @@ def get_logger():
 
 
 class Server(object):
-    available = "Available"
+    available = "active"
 
     def __init__(self, name, host, tag, vcpu=0, ram=0, service=None, az=None):
 
@@ -61,7 +69,6 @@ class Server(object):
         """
 
         logger = get_logger()
-        # fixme vm name duplication?
         server = nova_client.servers.get(self)
 
         # quit if not tag provided
@@ -76,11 +83,51 @@ class Server(object):
         else:
             logger.info('vm: %s(%s) already has tag: %s', self.name, server.id, self.tag)
 
-    def could_live_migrate(self, server):
-        if server.status.lower() in ['active', 'stopped']:
+    def could_migrate(self, server):
+        if server.status.lower() in MIGRATIBLE_STATES:
             return True
         else:
             return False
+
+    def could_live_migrate(self, server):
+        if server.status.lower() in LIVE_MIGRATIBLE_STATES:
+            return True
+        else:
+            return False
+
+    def migrate(self, nova_client):
+
+        server = nova_client.servers.get(self)
+        logger = get_logger()
+
+        if self.could_live_migrate(server):
+            logger.debug("live migrate server %s", server)
+            self.live_migrate(nova_client, False)
+        elif self.could_migrate(server):
+            logger.debug("cold migrate server %s", server)
+            self.cold_migrate(nova_client)
+        else:
+            logger.info("server %s is not in active/stopped state, cannot live migrate it", self.id)
+            raise ServerErrorStateException('server in non migrable state')
+
+    def cold_migrate(self, nova_client):
+        server = nova_client.servers.get(self)
+
+        try:
+            nova_client.servers.migrate(server)
+
+            tic = time.time()
+
+            while time.time() - tic < DEFAULT_TIMEOUT:
+                server = nova_client.servers.get(self)
+                if server.status == 'resize_confirm':
+                    server.confirm_resize()
+                time.sleep(10)
+            else:
+                raise ColdMigrationFailedException('cold migration of %s timeout' % server)
+
+        except Exception:
+            raise ColdMigrationFailedException('cold migration of %s failed' % server)
 
     def live_migrate(self, nova_client, block=False):
         dest = getattr(self, DEST)
@@ -110,6 +157,10 @@ class Server(object):
                     raise ServerErrorException("server is in error status")
                 time.sleep(30)
 
+    def get_status(self, nova_client):
+
+        return nova_client.servers.get(self).status
+
     @classmethod
     def create(cls, nova_client, name, tag):
         logger = get_logger()
@@ -124,9 +175,8 @@ class Server(object):
 
         if len(servers) == 0:
             # this method might be redundant, nova may support regex natively?
-            # fixme Number of servers > default limit?
             logger.info('searching through all existing vms, this could be heavy')
-            all_servers = nova_client.servers.list(detailed=False, search_opts={"all_tenants": True})
+            all_servers = get_all_servers(nova_client, name)
             for one in all_servers:
                 if re.match(name, one.name):
                     servers.append(one)
@@ -165,6 +215,12 @@ class ServerErrorStateException(Exception):
     def __init__(self, *args, **kwargs):
         super(ServerErrorStateException, self).__init__(*args, **kwargs)
         self.name = "server in mismatch state"
+
+
+class ColdMigrationFailedException(Exception):
+    def __init__(self, *args, **kwargs):
+        super(ColdMigrationFailedException, self).__init__(*args, **kwargs)
+        self.name = 'cold migration failed exception'
 
 
 def is_error(server):
@@ -270,13 +326,13 @@ def schedule_vms(aggregates, vms):
             logger.debug("updating host %s", hosts[index])
             update_host(hosts[index], vm)
             logger.debug("host %s updated", hosts[index])
-            # todo should update current host as well?
+            # TODO should update current host as well?
 
     return vms
 
 
 def read_config(nova_client, config_path):
-    # fixme remore duplicate record and log
+    # fixme remove duplicate record and log
     if not os.path.exists(config_path):
         raise Exception("path: %s does not exist!", config_path)
 
@@ -301,14 +357,34 @@ def read_config(nova_client, config_path):
             if col > MAX_COLUMNS:
                 break
 
-            # fixme value might have letter like 'G'
+            # value should not have letters like 'G'
             val = sheet.cell(row, col).value
             args[COLUME_NAME[col]] = val
 
         logger.info("args: %s", str(args))
         servers.extend(Server.create(**args))
 
-    return servers
+    # it is hard to know where to find it in excel
+    names = {}
+    for i in range(len(servers)):
+        if not names.get(servers[i].name):
+            names[servers[i].name] = [i]
+        else:
+            names[servers[i].name].append(i)
+
+    dumplicated_index = []
+    dumplicated_names = []
+    for name in names.keys():
+        if len(names[name]) > 1:
+            dumplicated_index.extend(names[name])
+            dumplicated_names.append(name)
+    dumplicated_index = sorted(dumplicated_index, reverse=True)
+
+    # make sure traverse index from greater value to lesser
+    for i in dumplicated_index:
+        servers.pop(i)
+
+    return servers, dumplicated_names
 
 
 def tag_and_move_vm(nova_client, vms, preview=False):
@@ -316,6 +392,7 @@ def tag_and_move_vm(nova_client, vms, preview=False):
     add tag to virtual machines
     :param nova_client:
     :param vms:
+    :param preview
     :return:
     """
 
@@ -326,9 +403,17 @@ def tag_and_move_vm(nova_client, vms, preview=False):
         "preview": []
     }
 
-    logger = get_logger()
+    waiting_list = Queue()
+    server_queue = Queue()
     for vm in vms:
+        server_queue.put(vm)
+
+    logger = get_logger()
+    while not server_queue.empty():
+        logger.debug('retrive server from queue')
+        vm = server_queue.get()
         try:
+            # tag vm ignoring preview value
             logger.info('start dealing with %s', vm.name)
             vm.tag_vm(nova_client)
 
@@ -337,18 +422,20 @@ def tag_and_move_vm(nova_client, vms, preview=False):
 
                 if not preview:
                     try:
-                        vm.live_migrate(nova_client, True)
-                        ret['success'].append(vm)
-                    except ServerErrorStateException as e:
+                        # stopped vm couold be resized?
+                        vm.migrate(nova_client)
+                        vm.start_time = time.time()
+                        waiting_list.put(vm)
+                    except ServerErrorStateException:
                         logger.exception("vm %s is in wrong state", vm.id)
                         ret['error'].append(vm)
-                    except ServerLiveMigrationTimeoutException as e:
+                    except ServerLiveMigrationTimeoutException:
                         logger.exception("waiting for %s finish time out", vm.id)
                         ret['error'].append(vm)
-                    except ServerErrorException as e:
+                    except ServerErrorException:
                         logger.exception("server %s is error state", vm.id)
                         ret['error'].append(vm)
-                    except Exception as e:
+                    except Exception:
                         logger.exception("server %s migration failed", vm.id)
                         ret['error'].append(vm)
                 else:
@@ -359,6 +446,59 @@ def tag_and_move_vm(nova_client, vms, preview=False):
 
         except Exception as e:
             logger.exception("add tag to vm: %s failed", str(vm))
+
+        while waiting_list.qsize() == WAITING_QUEUE_MAX_SIZE:
+            # block here
+            vm = waiting_list.get()
+            status = check_migrating_vm(nova_client, vm)
+            if not status:
+                # requeue if not finished
+                waiting_list.put(vm)
+                time.sleep(10)
+            else:
+                ret.update(status)
+
+    # searching through waiting list
+    logger.info('waiting for live migrating finishes')
+    while not waiting_list.empty():
+        vm = waiting_list.get()
+        status = check_migrating_vm(vm, nova_client)
+        if not status:
+            # request if not finished
+            waiting_list.put(vm)
+        else:
+            ret.update(status)
+
+    return ret
+
+
+def check_migrating_vm(nova_client, vm):
+    """
+    check both cold/live migration
+    this makes things tricker since they share different
+    :param nova_client:
+    :param vm:
+    :return:
+    """
+    ret = {}
+    logger = get_logger()
+    tic = getattr(vm, "start_time", time.time())
+    try:
+        status = vm.get_status(nova_client)
+        toc = time.time()
+
+        # https://docs.openstack.org/nova/pike/reference/vm-states.html
+        if status.lower() in COMPLETED_STATES:
+            ret['success'].append(vm)
+        elif status.lower() in ERROR_STATE:
+            ret['error'].append(vm)
+        elif toc - tic > DEFAULT_TIMEOUT:
+            ret['error'].append(vm)
+        else:
+            return None
+    except Exception:
+        logger.exception("server %s migration failed", vm.id)
+        ret['error'].append(vm)
 
     return ret
 
@@ -392,11 +532,8 @@ def init_nova_client(credentials):
     auth = loader.load_from_options(**options)
     sess = session.Session(auth=auth, verify=False)
 
-    # fixme fix this ugle code!!
-    endpoint_type = credentials.get('endpoint_type', os.environ['OS_ENDPOINT_TYPE'])
-    endpoint_type = endpoint_type if endpoint_type else "public"
-    region_name = credentials.get('region_name', os.environ['OS_REGION_NAME'])
-    region_name = region_name if region_name else "RegionOne"
+    endpoint_type = get(credentials, 'endpoin_type', os.environ['OS_ENDPOINT_TYPE'], 'public')
+    region_name = get(credentials, 'region_name', os.environ['OS_REGION_NAME'], 'RegionOne')
 
     nova_client = client.Client('2.53', session=sess, endpoint_type=endpoint_type, region_name=region_name)
     logger.info("initialzing nova client completed successfully")
@@ -405,12 +542,41 @@ def init_nova_client(credentials):
     return nova_client
 
 
-def get_all_servers(nova_client):
+def get(obj, name, *args):
+    """
+    extend get(obj, name, default=None) method
+    :param obj:
+    :param name:
+    :param args:
+    :return:
+    """
+    if getattr(obj, name, None):
+        return get(obj, name)
+
+    try:
+        if isinstance(obj, dict) and obj[name]:
+            return obj[name]
+    except Exception as e:
+        pass
+
+    for i in args:
+        if i:
+            return i
+
+
+def get_all_servers(nova_client, name=None, detailed=False, use_all=True):
     all_servers = []
+
+    opts = {
+        "all_tenants": use_all,
+    }
+
+    if name:
+        opts.update({"name": name})
 
     last = None
     while True:
-        servers = nova_client.servers.list(detailed=True, search_opts={"all_tenants": True},
+        servers = nova_client.servers.list(detailed=detailed, search_opts=opts,
                                            marker=last.id if last else None)
         if len(servers) == 0:
             break
@@ -447,10 +613,10 @@ def get_parser():
                         help='path to the configuration file')
     parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True,
                         default=False, help='enable debugging')
-    parser.add_argument('--preview', dest='preview', action='store_const', const=True,
-                        default=False, help='preview changes')
+    parser.add_argument('--no-preview', dest='preview', action='store_const', const=False,
+                        default=True, help='preview changes')
     parser.add_argument('-o', '--output', dest='output',
-                        default='/tmp/output.xls', help='display result in excel (xls)')
+                        default='output.xls', help='display result in excel (xls)')
 
     return parser.parse_args()
 
@@ -462,19 +628,24 @@ def main():
     nova_client = init_nova_client({})
     logger = get_logger()
 
-    servers = read_config(nova_client, parser.config_path)
+    servers, dup = read_config(nova_client, parser.config_path)
     logger.info('%s', servers)
+    logger.warning("These names %s are duplicated.", dup)
 
     logger.info('assemble aggreates objects')
+    # aggreates construct relationship between HA -> hosts
+    # every HA could have multiple overlapping hosts associated
     aggregates = assemble_aggregates(nova_client)
 
     logger.info("schedule servers to proper hosts")
+    # assign a host to each servers retrieved from excel
     servers = schedule_vms(aggregates, servers)
 
     logger.info('migrate servers')
     ret = tag_and_move_vm(nova_client, servers, parser.preview)
 
     logger.info('result is %s', ret)
+    write_to_excel(ret, parser.output)
 
 
 if __name__ == "__main__":
