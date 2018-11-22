@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-import math
+
 import re
 import os
 import logging
@@ -238,8 +237,8 @@ def create_networks(neutron_client, networks):
         try:
             network.create_network(neutron_client)
             logger.info('successfully create network:subnet %s:%s', network.network_name, network.subnet_name)
-        except Exception:
-            logger.exception("create network:subnet %s:%s failed", network.network_name, network.subnet_name)
+        except Exception as e:
+            logger.error("create network:subnet %s:%s failed, %s", network.network_name, network.subnet_name, e)
 
 
 def init_neutron_client(credentials):
