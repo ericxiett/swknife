@@ -41,17 +41,24 @@ def get_logger():
 class Server(object):
     available = "active"
 
-    def __init__(self, name, host, tag, vcpu=0, ram=0, service=None, az=None):
+    def __init__(self, id, name, host, tag, vcpu=0, ram=0, service=None, az=None):
 
         # this id will not be used if
         # search name returns a list with more than 1 element
-        self.id = name
+        self.id = id
         self.name = name
         self.host = host
         self.vcpus = vcpu
         self.ram = ram
         self.tag = tag
-        self.service = service if service else "ecs"
+
+        if service:
+            self.service = service
+        elif tag:
+            self.service = tag.lower()
+        else:
+            self.service = None
+
         self.az = az if az else "cn-north-3a"
         self.aggregate = "%s_%s_%s" % (self.az, self.service, "general")
 
@@ -170,7 +177,7 @@ class Server(object):
 
         if len(servers) == 0:
             # this trick utilizes the fact only id attribute is required for this get method
-            a = Server(name, None, None)
+            a = Server(name, None, None, None)
             servers = [nova_client.servers.get(a)]
 
         if len(servers) == 0:
@@ -187,7 +194,7 @@ class Server(object):
             host = getattr(detailed_server, 'OS-EXT-SRV-ATTR:host')
             vcpus = detailed_server.flavor['vcpus']
             ram = detailed_server.flavor['ram']
-            ret.append(Server(server.id, host, tag, vcpus, ram))
+            ret.append(Server(server.id, server.name, host, tag, vcpus, ram))
 
         return ret
 
@@ -314,6 +321,10 @@ def schedule_vms(aggregates, vms):
     for vm in vms:
         current_host = vm.host
         correct_aggregate = vm.aggregate
+
+        if correct_aggregate not in aggregates.keys():
+            logger.warning("server %s does not have a correct aggregate configured", vm)
+            continue
 
         # move vm if it's on a wrong host
         if current_host not in [i.name for i in aggregates[correct_aggregate].hosts]:
@@ -630,7 +641,8 @@ def main():
 
     servers, dup = read_config(nova_client, parser.config_path)
     logger.info('%s', servers)
-    logger.warning("These names %s are duplicated.", dup)
+    if len(dup) > 0:
+        logger.warning("These names %s are duplicated.", dup)
 
     logger.info('assemble aggreates objects')
     # aggreates construct relationship between HA -> hosts
