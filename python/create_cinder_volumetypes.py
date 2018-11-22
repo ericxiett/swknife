@@ -4,8 +4,8 @@
 import sys
 import os
 import xlrd
-import random
-import string
+# import random
+# import string
 from keystoneauth1 import loading, session
 from cinderclient import client as clientc
 
@@ -39,26 +39,26 @@ def init_check(XLS_FILE):
         return 0
     # get cinder_client
     cinder = get_cinder_client()
-    # get all old volumetypes
-    vtypeList = cinder.volume_types.list()
-    # delete exited volumetypes
-    try:
-        print("Warning:Deleting all exited Volume_Types")
-        for volume_types in vtypeList:
-            vt_delete(volume_types=volume_types)
-    except Exception as e:
-        print(e.message)
-    # renaming all volumeTypes that were been using
-    vtypeList2 = cinder.volume_types.list()
-    for volume_types in vtypeList2:
-        vtname = volume_types.name
-        middle_name = ''.join(random.sample(string.ascii_letters+string.digits, 6))
-        rename = vtname+"_"+middle_name
-        print("Warning:renaming Volume_Types: " + vtname + " as " + rename)
-        renaming(volume_types=volume_types, rename=rename)
-        print("------------------------------------------")
-    # init finish
-    print("Info: Init the Envionment finished.Operate volume_types Information.")
+    # # get all old volumetypes
+    # vtypeList = cinder.volume_types.list()
+    # # delete exited volumetypes
+    # try:
+    #     print("Warning:Deleting all exited Volume_Types")
+    #     for volume_types in vtypeList:
+    #         vt_delete(volume_types=volume_types)
+    # except Exception as e:
+    #     print(e.message)
+    # # renaming all volumeTypes that were been using
+    # vtypeList2 = cinder.volume_types.list()
+    # for volume_types in vtypeList2:
+    #     vtname = volume_types.name
+    #     middle_name = ''.join(random.sample(string.ascii_letters+string.digits, 6))
+    #     rename = vtname+"_"+middle_name
+    #     print("Warning:renaming Volume_Types: " + vtname + " as " + rename)
+    #     renaming(volume_types=volume_types, rename=rename)
+    #     print("------------------------------------------")
+    # # init finish
+    # print("Info: Init the Envionment finished.Operate volume_types Information.")
     # create volumtypes
     operate_vt_info(sheet=sheet)
 
