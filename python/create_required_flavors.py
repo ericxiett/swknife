@@ -46,7 +46,7 @@ class Flavor(object):
         self.cpu = str(int(cpu))
         self.memory = str(int(memory))
         self.disk = str(int(disk))
-        self.bandwidth = bandwidth if int(bandwidth) else 0
+        self.bandwidth = int(bandwidth) if bandwidth else 0
 
         # fixme spec might be a list of string
         if not spec:
@@ -110,7 +110,7 @@ def split_string(val):
     :return: a tuple of min, max, step
     """
 
-    pattern = r"，|,"
+    pattern = ur"，|,"
     if (isinstance(val, str) or isinstance(val, unicode)) and re.search(pattern, val):
         arr = val.replace(u'，', ',').split(',')[0:3]
         a = int(arr[0])
@@ -143,24 +143,24 @@ def read_template_from_excel(config_path):
 
     # by default, there is only a single sheet
     # fixme 0-n
-    sheet = wb.sheets()[0]
+    for sheet in wb.sheets():
 
-    # ignore the first row
-    for row in range(1, sheet.nrows):
-        args = {}
-        for col in range(sheet.ncols):
+        # ignore the first row
+        for row in range(1, sheet.nrows):
+            args = {}
+            for col in range(sheet.ncols):
 
-            # there should not be more than defined
-            # number of columns
-            if col > MAX_COLUMNS:
-                break
+                # there should not be more than defined
+                # number of columns
+                if col > MAX_COLUMNS:
+                    break
 
-            # fixme value might have letter like 'G'
-            val = sheet.cell(row, col).value
-            args[COLUME_NAME[col]] = val
+                # fixme value might have letter like 'G'
+                val = sheet.cell(row, col).value
+                args[COLUME_NAME[col]] = val
 
-        logger.info("args: %s", str(args))
-        flavors.extend(Flavor.create(**args))
+            logger.info("args: %s", str(args))
+            flavors.extend(Flavor.create(**args))
 
     logger.info("retrieve %s records from %s", str(flavors), config_path)
     # return a list of Flavors
@@ -234,7 +234,7 @@ def create_flavor(nova_client, flavor):
     # set method should be idempotent
     flavor_keys = {
         "SPEC": flavor.spec[0].upper(),
-        "SERVICE": flavor.name.upper()
+        "SERVICE": flavor.name
     }
 
     if flavor.bandwidth != 0:
