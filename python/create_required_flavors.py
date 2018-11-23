@@ -12,8 +12,8 @@ from xlrd import open_workbook
 
 DEFAULT_SPEC = "general"
 LOGGER = None
-COLUME_NAME = ["name", "cpu", "memory", "disk", "spec"]
-MAX_COLUMNS = 5
+COLUME_NAME = ["name", "cpu", "memory", "disk", "bandwidth", "spec"]
+MAX_COLUMNS = len(COLUME_NAME)
 
 
 def get_logger():
@@ -32,7 +32,7 @@ class Flavor(object):
     flavor object
     """
 
-    def __init__(self, name, cpu, memory, disk, spec=None):
+    def __init__(self, name, cpu, memory, disk, bandwidth=0, spec=None):
         """
         initialize object
         :param name: service name
@@ -46,6 +46,7 @@ class Flavor(object):
         self.cpu = str(int(cpu))
         self.memory = str(int(memory))
         self.disk = str(int(disk))
+        self.bandwidth = bandwidth if int(bandwidth) else 0
 
         # fixme spec might be a list of string
         if not spec:
@@ -78,7 +79,7 @@ class Flavor(object):
         return template % (self.name.lower(), self.cpu, self.memory, self.disk, "_".join(self.spec))
 
     @classmethod
-    def create(cls, name, cpu, memory, disk, spec=None):
+    def create(cls, name, cpu, memory, disk, bandwidth=None, spec=None):
         """
         create flavors
         :param name:
@@ -96,7 +97,7 @@ class Flavor(object):
         ram_tuple = split_string(memory)
         disk_tuple = split_string(disk)
 
-        flavors = [Flavor(name, c, r, d, spec) for c in range(*cpu_tuple) for r in range(*ram_tuple) for d in
+        flavors = [Flavor(name, c, r, d, bandwidth, spec) for c in range(*cpu_tuple) for r in range(*ram_tuple) for d in
                    range(*disk_tuple)]
         return flavors
 
@@ -141,6 +142,7 @@ def read_template_from_excel(config_path):
     wb = open_workbook(config_path)
 
     # by default, there is only a single sheet
+    # fixme 0-n
     sheet = wb.sheets()[0]
 
     # ignore the first row
@@ -220,17 +222,28 @@ def create_flavor(nova_client, flavor):
     disk = flavor.disk
 
     _flavor = get_flavor(nova_client, name)
-    if _flavor:
-        logger.warning("flavor: %s already exists", name)
-    else:
-        _flavor = nova_client.flavors.create(name, memory, cpu, disk)
 
-    # fixme spec might change later
+    # delete conflict flavors
+    if _flavor:
+        logger.warning("flavor: %s already exists delete it", name)
+        _flavor.delete()
+
+    # create flavor
+    _flavor = nova_client.flavors.create(name, memory, cpu, disk)
+
     # set method should be idempotent
-    _flavor.set_keys({
+    flavor_keys = {
         "SPEC": flavor.spec[0].upper(),
         "SERVICE": flavor.name.upper()
-    })
+    }
+
+    if flavor.bandwidth != 0:
+        flavor_keys.update({
+            "quota:vif_inbound_average": str(int(flavor.bandwidth * 1024 * 1024)),
+            "quota:vif_outbound_average": str(int(flavor.bandwidth * 1024 * 1024)),
+        })
+
+    _flavor.set_keys(flavor_keys)
 
 
 def init_nova_client(credentials):

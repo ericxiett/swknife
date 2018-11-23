@@ -118,7 +118,7 @@ class Network(object):
                 "provider:physical_network": DEFAULT_NIC,
                 "provider:segmentation_id": self.vlanid,
                 "shared": True,
-                "router:external": True
+                "router:external": False
             }}
 
         return network
@@ -311,4 +311,6 @@ def main():
 
 
 if __name__ == "__main__":
+
+    # fixme init project?
     exit(main())
