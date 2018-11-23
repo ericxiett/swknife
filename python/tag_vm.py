@@ -51,6 +51,7 @@ class Server(object):
 
         logger = get_logger()
         # fixme openstack does not support normal regex
+        # fixme vm name duplication?
         # instead it uses database style (mysql...)
         servers = nova_client.servers.list(detailed=False, search_opts={"name": self.name, "all_tenants": True})
 
@@ -82,6 +83,7 @@ class Server(object):
 
 
 def read_config(config_path):
+    # fixme remore duplicate record and log
     if not os.path.exists(config_path):
         raise Exception("path: %s does not exist!", config_path)
 
@@ -186,6 +188,7 @@ def get_parser():
 
 
 def main():
+    # fixme unicode
     parser = get_parser()
     setup_logging(parser.debug)
 
