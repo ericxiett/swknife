@@ -13,7 +13,7 @@ from xlrd import open_workbook
 DEFAULT_SPEC = "general"
 LOGGER = None
 COLUME_NAME = ["name", "cpu", "memory", "disk", "bandwidth", "spec"]
-MAX_COLUMNS = 5
+MAX_COLUMNS = len(COLUME_NAME)
 _FLAVORS = None
 
 
