@@ -191,10 +191,10 @@ def init_client(credentials):
     return nova_client
 
 
-def write_output_to_excel(networks, filename):
+def write_output_to_excel(users, filename):
     """
     write networks output to filename
-    :param networks:
+    :param users:
     :param filename:
     :return:
     """
@@ -202,14 +202,14 @@ def write_output_to_excel(networks, filename):
     workbook = xlwt.Workbook()
     sheet = workbook.add_sheet("networks")
 
-    attrs = ["service", 'network_id', "network_name", "subnet_id", "subnet_name"]
+    attrs = ["service", "name", 'password', "project", "role"]
 
     for i in range(len(attrs)):
         sheet.write(0, i, attrs[i])
 
-    for j in range(len(networks)):
+    for j in range(len(users)):
         for i in range(len(attrs)):
-            sheet.write(1 + j, i, getattr(networks[j], attrs[i], ''))
+            sheet.write(1 + j, i, getattr(users[j], attrs[i], ''))
 
     workbook.save(filename)
 
@@ -247,6 +247,8 @@ def main():
     users = read_template_from_excel(parser.config_path)
     for user in users:
         user.create_user(keystone_client)
+
+    write_output_to_excel(users, parser.output_file)
 
     return 0
 
