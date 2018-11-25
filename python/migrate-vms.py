@@ -41,11 +41,11 @@ def get_logger():
 class Server(object):
     available = "active"
 
-    def __init__(self, id, name, host, tag, vcpu=0, ram=0, service=None, az=None):
+    def __init__(self, server_id, name, host, tag, vcpu=0, ram=0, service=None, az=None):
 
         # this id will not be used if
         # search name returns a list with more than 1 element
-        self.id = id
+        self.id = server_id
         self.name = name
         self.host = host
         self.vcpus = vcpu
@@ -55,12 +55,12 @@ class Server(object):
         if service:
             self.service = service
         elif tag:
-            self.service = tag.lower()
+            self.service = tag
         else:
-            self.service = None
+            self.service = ''
 
         self.az = az if az else "cn-north-3a"
-        self.aggregate = "%s_%s_%s" % (self.az, self.service, "general")
+        self.aggregate = "%s_%s_%s" % (self.az, self.service.lower(), "general")
 
     def __repr__(self):
         return self.__str__()
@@ -247,8 +247,8 @@ def is_active(server):
 
 
 class Host(object):
-    def __init__(self, id, name, vcpus, ram, **kwargs):
-        self.id = id
+    def __init__(self, host_id, name, vcpus, ram, **kwargs):
+        self.id = host_id
         self.name = name
         self.vcpus = vcpus
         self.ram = ram
@@ -330,7 +330,7 @@ def schedule_vms(aggregates, vms):
         if current_host not in [i.name for i in aggregates[correct_aggregate].hosts]:
             # compute dest and assign to vm
             hosts = aggregates[correct_aggregate].hosts
-            index = sorted(range(len(hosts)), key=lambda i: hosts[i])[-1]
+            index = sorted(range(len(hosts)), key=lambda j: hosts[j])[-1]
             logger.info("%s will be moved from %s to %s", vm.id, current_host, hosts[index])
             setattr(vm, DEST, hosts[index].name)
 
@@ -455,7 +455,7 @@ def tag_and_move_vm(nova_client, vms, preview=False):
             else:
                 ret['ignored'].append(vm)
 
-        except Exception as e:
+        except Exception:
             logger.exception("add tag to vm: %s failed", str(vm))
 
         while waiting_list.qsize() == WAITING_QUEUE_MAX_SIZE:
@@ -567,7 +567,7 @@ def get(obj, name, *args):
     try:
         if isinstance(obj, dict) and obj[name]:
             return obj[name]
-    except Exception as e:
+    except Exception:
         pass
 
     for i in args:
