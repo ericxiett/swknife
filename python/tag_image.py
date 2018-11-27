@@ -9,11 +9,12 @@ from keystoneauth1 import loading, session
 # Global variables
 from glanceclient import Client
 import os
+import xlwt
 from xlrd import open_workbook
 
 
-MAX_COLUMNS = 3
-COLUME_NAME = ["image_uuid", "image_name", "image_tags"]
+MAX_COLUMNS = 4
+COLUME_NAME = ["index","image_uuid", "image_name", "image_tags"]
 
 AUTH_URL='http://192.168.2.10:35357/v3'
 USERNAME = 'admin'
@@ -60,11 +61,77 @@ def read_config(config_path):
 
         #logger.info("args: %s", str(args))
         print("args:%s" %args)
+        #already exist image tags
+        old_tags = get_image_tags(args.get('image_uuid'))
         #set image tags
         for tag in args.get('image_tags').split(','):
+            if len(old_tags) == 0:
+                update_image_tags(args.get('image_uuid'),tag)
+            else:
+                for old_tag in old_tags:
+                    if tag == old_tag:
+                        print("The image:%s,has the tag:%s" %( args.get('image_uuid'),tag))
 
-            update_image_tags(args.get('image_uuid'),tag)
+#create xlsx
+def build_sheet():
+    style0 = xlwt.easyxf('font: name Times New Roman, color-index green, bold on',
+                         num_format_str='#,##0')
+    style1 = xlwt.easyxf('font: name Times New Roman, color-index black',
+                         num_format_str='#,##0')
 
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('images')
+
+    # First row
+    for col in range(len(COLUME_NAME)):
+        ws.write(0, col, COLUME_NAME[col], style0)
+
+    return wb, ws, style1
+
+def output_one_tags(wb, ws, style,index,image_uuid, image_name, image_tags):
+
+    ws.write(index, 0, index, style)
+    ws.write(index, 1, image_uuid, style)
+    ws.write(index, 2, image_name, style)
+    ws.write(index, 3, image_tags, style)
+
+    wb.save('public_images.xls')
+
+def write_all_tags(config_path):
+    glance_client = get_glance_client()
+    if not os.path.exists(config_path):
+        raise Exception("path: %s does not exist!", config_path)
+
+    print("read configuration from %s" % (config_path))
+    print("export all set images tags................")
+    wb = open_workbook(config_path)
+
+    # by default, there is only a single sheet
+    sheet = wb.sheets()[0]
+
+    # ignore the first row
+    wb, ws, style = build_sheet()
+    index = 1
+    for row in range(1, sheet.nrows):
+        args = {}
+        for col in range(sheet.ncols):
+
+            # there should not be more than defined
+            # number of columns
+            if col > MAX_COLUMNS:
+                break
+
+            # fixme value might have letter like 'G'
+            val = sheet.cell(row, col).value
+            args[COLUME_NAME[col]] = val
+        image_uuid = args.get('image_uuid')
+        image_tags = ','.join(get_image_tags(image_uuid))
+        image_name = glance_client.images.get(image_uuid).name
+
+        output_one_tags(wb, ws, style, index, image_uuid, image_name, image_tags)
+        print("export image,uuid: %s,name:%s,tags:%s successful." %(image_uuid, image_name, image_tags))
+        index +=1
+    print("export set images tags file:public_images.xls successful.")
 
 def get_images():
     glance_client = get_glance_client()
@@ -113,7 +180,10 @@ def delete_image_tags(image_id,tag_name):
 
 def main():
     config_path="image_tags.xlsx"
+    #add tag
     read_config(config_path)
+    #export tag
+    write_all_tags(config_path)
     return 0
 
 
