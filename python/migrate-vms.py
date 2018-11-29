@@ -1,15 +1,16 @@
 #!/usr/bin/python env
 # -*- coding: utf-8 -*-
 
-import re
-from Queue import Queue
-import time
 import logging
 import os
+import re
+import time
+from Queue import Queue
+
 import xlwt
-from xlrd import open_workbook
-from novaclient import client
 from keystoneauth1 import loading, session
+from novaclient import client
+from xlrd import open_workbook
 
 DEFAULT_TIMEOUT = 10 * 60
 WAITING_QUEUE_MAX_SIZE = 10
@@ -365,7 +366,7 @@ def read_config(nova_client, config_path):
 
             # there should not be more than defined
             # number of columns
-            if col > MAX_COLUMNS:
+            if col >= MAX_COLUMNS:
                 break
 
             # value should not have letters like 'G'
@@ -373,7 +374,10 @@ def read_config(nova_client, config_path):
             args[COLUME_NAME[col]] = val
 
         logger.info("args: %s", str(args))
-        servers.extend(Server.create(**args))
+        try:
+            servers.extend(Server.create(**args))
+        except Exception:
+            logger.exception("get server error..")
 
     # it is hard to know where to find it in excel
     names = {}
@@ -457,6 +461,7 @@ def tag_and_move_vm(nova_client, vms, preview=False):
 
         except Exception:
             logger.exception("add tag to vm: %s failed", str(vm))
+            ret['error'].append(vm)
 
         while waiting_list.qsize() == WAITING_QUEUE_MAX_SIZE:
             # block here
