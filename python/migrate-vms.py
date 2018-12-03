@@ -272,10 +272,13 @@ class Host(object):
         return self.__str__()
 
     def __lt__(self, other):
+
+        # __lt__ return true if self < other
+        # be careful: bool(-1) will give True
         if self.vcpus == other.vcpus:
-            return other.ram < self.ram
+            return self.ram < other.ram
         else:
-            return other.vcpus < self.vcpus
+            return self.vcpus < other.vcpus
 
     def __eq__(self, other):
         return self.name == other.name
@@ -296,7 +299,8 @@ def assemble_aggregates(nova_client):
     :param nova_client:
     :return:
     """
-    hosts = {i.service['host']: Host(i.id, i.service['host'], i.vcpus, i.memory_mb)
+
+    hosts = {i.service['host']: Host(i.id, i.service['host'], i.vcpus - i.vcpus_used, i.free_ram_mb)
              for i in nova_client.hypervisors.list()}
     aggregates = {i.name: Aggregate(i.name, [hosts.get(j) for j in i.hosts])
                   for i in nova_client.aggregates.list()}
@@ -331,7 +335,8 @@ def schedule_vms(aggregates, vms):
         if current_host not in [i.name for i in aggregates[correct_aggregate].hosts]:
             # compute dest and assign to vm
             hosts = aggregates[correct_aggregate].hosts
-            index = sorted(range(len(hosts)), key=lambda j: hosts[j])[-1]
+            indices = sorted(range(len(hosts)), key=lambda j: hosts[j])
+            index = indices[-1]
             logger.info("%s will be moved from %s to %s", vm.id, current_host, hosts[index])
             setattr(vm, DEST, hosts[index].name)
 
