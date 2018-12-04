@@ -46,6 +46,7 @@ class Flavor(object):
         """
 
         self.name = name
+        self.service = name
         self.cpu = str(int(cpu))
         self.memory = str(int(memory))
         self.disk = str(int(disk))
@@ -105,9 +106,20 @@ class Flavor(object):
         ram_tuple = split_string(memory)
         disk_tuple = split_string(disk)
 
-        flavors = [Flavor(name, c, r, d, bandwidth, spec) for c in range(*cpu_tuple) for r in range(*ram_tuple) for d in
+        flavors = [cls(name, c, r, d, bandwidth, spec) for c in range(*cpu_tuple) for r in range(*ram_tuple) for d in
                    range(*disk_tuple)]
         return flavors
+
+
+class ClassicFlavor(Flavor):
+
+    def __init__(self, name, cpu, memory, disk, bandwidth=0, spec=None):
+        super(ClassicFlavor, self).__init__(name, cpu, memory, disk, bandwidth, spec)
+        self.name = name
+        self.service = "ECS"
+
+    def __repr__(self):
+        return self.name
 
 
 def split_string(val):
@@ -134,10 +146,12 @@ def zero_to_one(x):
     return 1 if x == 0 else 0
 
 
-def read_template_from_excel(config_path):
+def read_template_from_excel(config_path, flavor_cls):
     """
     read flavor configurations from excel
     :param config_path: path to excel configuration file
+    :param flavor_cls: class object of Flavor
+                        possible Flavor, ClassicFlavor
     :return: a list of flavors
     """
 
@@ -169,7 +183,7 @@ def read_template_from_excel(config_path):
                 args[COLUME_NAME[col]] = val
 
             logger.info("args: %s", str(args))
-            flavors.extend(Flavor.create(**args))
+            flavors.extend(flavor_cls.create(**args))
 
     logger.info("retrieve %s records from %s", str(flavors), config_path)
     # return a list of Flavors
@@ -271,7 +285,7 @@ def create_flavor(nova_client, flavor):
 
     flavor_keys = {
         "SPEC": flavor.spec[0].upper(),
-        "SERVICE": flavor.name
+        "SERVICE": flavor.service
     }
 
     if flavor.bandwidth > 0:
@@ -332,6 +346,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description='generate required flavors')
     parser.add_argument('-f', '--config', dest='config_path', required=True,
                         help='path to the configuration file')
+    parser.add_argument('-t', '--type', dest='type', default="Flavor", help='path to the configuration file')
     parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True,
                         default=False, help='enable debugging')
 
@@ -352,7 +367,8 @@ def main():
     # assemble flavor objects
     logger = get_logger()
     logger.info('configuration found at %s', parser.config_path)
-    flavors = read_template_from_excel(parser.config_path)
+    flavor_cls_name = parser.type
+    flavors = read_template_from_excel(parser.config_path, getattr(sys.modules[__name__], flavor_cls_name))
 
     # init nova client
     nova_client = init_nova_client({})
