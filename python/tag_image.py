@@ -61,16 +61,17 @@ def read_config(config_path):
 
         #logger.info("args: %s", str(args))
         print("args:%s" %args)
+        image_id = args.get('image_uuid').strip()
         #already exist image tags
-        old_tags = get_image_tags(args.get('image_uuid'))
+        old_tags = get_image_tags(image_id)
         #set image tags
         for tag in args.get('image_tags').split(','):
             if len(old_tags) == 0:
-                update_image_tags(args.get('image_uuid'),tag)
+                update_image_tags(image_id,tag)
             else:
                 for old_tag in old_tags:
                     if tag == old_tag:
-                        print("The image:%s,has the tag:%s" %( args.get('image_uuid'),tag))
+                        print("The image:%s,has the tag:%s" %( image_id,tag))
 
 #create xlsx
 def build_sheet():
@@ -124,7 +125,7 @@ def write_all_tags(config_path):
             # fixme value might have letter like 'G'
             val = sheet.cell(row, col).value
             args[COLUME_NAME[col]] = val
-        image_uuid = args.get('image_uuid')
+        image_uuid = args.get('image_uuid').strip()
         image_tags = ','.join(get_image_tags(image_uuid))
         image_name = glance_client.images.get(image_uuid).name
 
@@ -157,8 +158,14 @@ def get_id_byname(image_name):
 
 def get_image_tags(image_id):
     glance_client = get_glance_client()
-    image_tags = glance_client.images.get(image_id).get('tags')
-    return image_tags
+    try:
+        image_tags = glance_client.images.get(image_id).get('tags')
+        print("image:%s ,tag info:%s " % (image_id, image_tags))
+        return image_tags
+    except Exception:
+        print("Could not find resource:%s" % image_id)
+        return None
+
 
 def update_image_tags(image_id,tag_name):
     #set image tags
