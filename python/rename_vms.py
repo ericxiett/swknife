@@ -34,7 +34,7 @@ def parse_xls(xls_file):
         return None
 
     book = xlrd.open_workbook(xls_file)
-    sheet = book.sheet_by_name('sheet1')
+    sheet = book.sheet_by_name('vm_list')
     vms = []
     for row in range(2, sheet.nrows):
         uuid = sheet.cell_value(row, 3)
@@ -64,7 +64,7 @@ def main():
         print('Please input xls file!')
         exit(1)
 
-    xls_file = sys.argv[2]
+    xls_file = sys.argv[1]
     vms = parse_xls(xls_file)
     if not vms:
         exit(2)
