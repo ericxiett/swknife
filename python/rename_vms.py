@@ -36,10 +36,10 @@ def parse_xls(xls_file):
     book = xlrd.open_workbook(xls_file)
     sheet = book.sheet_by_name('vm_list')
     vms = []
-    for row in range(2, sheet.nrows):
-        uuid = sheet.cell_value(row, 3)
-        old_name = sheet.cell_value(row, 1)
-        new_name = sheet.cell_value(row, 4)
+    for row in range(1, sheet.nrows):
+        uuid = sheet.cell_value(row, 2)
+        old_name = sheet.cell_value(row, 0)
+        new_name = sheet.cell_value(row, 3)
         vms.append({
             'uuid': uuid,
             'old_name': old_name,
