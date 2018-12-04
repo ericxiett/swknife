@@ -64,14 +64,17 @@ def read_config(config_path):
         image_id = args.get('image_uuid').strip()
         #already exist image tags
         old_tags = get_image_tags(image_id)
+        if old_tags is None:
+            print("The image:%s,not found" % (image_id))
+        else:
         #set image tags
-        for tag in args.get('image_tags').split(','):
-            if len(old_tags) == 0:
-                update_image_tags(image_id,tag)
-            else:
-                for old_tag in old_tags:
-                    if tag == old_tag:
-                        print("The image:%s,has the tag:%s" %( image_id,tag))
+            for tag in args.get('image_tags').split(','):
+                if len(old_tags) == 0:
+                    update_image_tags(image_id,tag)
+                else:
+                    for old_tag in old_tags:
+                        if tag == old_tag:
+                            print("The image:%s,has the tag:%s" %( image_id,tag))
 
 #create xlsx
 def build_sheet():
@@ -126,8 +129,13 @@ def write_all_tags(config_path):
             val = sheet.cell(row, col).value
             args[COLUME_NAME[col]] = val
         image_uuid = args.get('image_uuid').strip()
-        image_tags = ','.join(get_image_tags(image_uuid))
-        image_name = glance_client.images.get(image_uuid).name
+        if  get_image_tags(image_uuid) is None:
+            print("image:%s not exist" % image_uuid)
+            image_tags=""
+            image_name = args.get('image_name')
+        else:
+            image_tags = ','.join(get_image_tags(image_uuid))
+            image_name = glance_client.images.get(image_uuid).name
 
         output_one_tags(wb, ws, style, index, image_uuid, image_name, image_tags)
         print("export image,uuid: %s,name:%s,tags:%s successful." %(image_uuid, image_name, image_tags))
