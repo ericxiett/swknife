@@ -55,7 +55,7 @@ def rename_vms(vms):
         if vm_info.name != vm.get('old_name'):
             print('%s is not %s from xls file!' % (vm_info.name, vm.get('old_name')))
             continue
-        updated_info = nc.servers.update(vm.get('new_name'))
+        updated_info = nc.servers.update(vm.get('uuid'), vm.get('new_name'))
         print('Result name: %s' % updated_info.name)
 
 
