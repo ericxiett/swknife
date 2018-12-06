@@ -75,7 +75,9 @@ def read_config(config_path):
                     for old_tag in old_tags:
                         if tag == old_tag:
                             print("The image:%s,has the tag:%s" %( image_id,tag))
-
+                        else:
+                            update_image_tags(image_id, tag)
+                            print("The image:%s,add the new tag:%s" % (image_id, tag))
 #create xlsx
 def build_sheet():
     style0 = xlwt.easyxf('font: name Times New Roman, color-index green, bold on',
