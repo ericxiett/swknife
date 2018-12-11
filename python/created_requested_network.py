@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-import re
-import os
 import logging
-from neutronclient.v2_0 import client
-from keystoneauth1 import session, loading
-from xlrd import open_workbook
+import os
+import re
+
 import xlwt
+from keystoneauth1 import session, loading
+from neutronclient.v2_0 import client
+from xlrd import open_workbook
 
 DEFAULT_SPEC = "general"
 LOGGER = None
@@ -111,6 +112,7 @@ class Network(object):
             self.subnet_id = subnet.get('id')
         else:
             logger.warning("subnet: %s is duplicate, maybe it has been created already?", self.subnet_name)
+            self.subnet_id = subnets[0].get('id')
 
     @property
     def network(self):
