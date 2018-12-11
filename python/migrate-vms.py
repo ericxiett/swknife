@@ -54,9 +54,9 @@ class Server(object):
         self.tag = tag
 
         if service:
-            self.service = service
+            self.service = service.strip()
         elif tag:
-            self.service = tag
+            self.service = tag.strip()
         else:
             self.service = ''
 
@@ -387,10 +387,10 @@ def read_config(nova_client, config_path):
     # it is hard to know where to find it in excel
     names = {}
     for i in range(len(servers)):
-        if not names.get(servers[i].name):
-            names[servers[i].name] = [i]
+        if not names.get(servers[i].id):
+            names[servers[i].id] = [i]
         else:
-            names[servers[i].name].append(i)
+            names[servers[i].id].append(i)
 
     dumplicated_index = []
     dumplicated_names = []
