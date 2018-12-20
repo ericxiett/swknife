@@ -1,15 +1,16 @@
 #!/usr/bin/python env
 # -*- coding: utf-8 -*-
 
-import re
-from Queue import Queue
-import time
 import logging
 import os
+import re
+import time
+from Queue import Queue
+
 import xlwt
-from xlrd import open_workbook
-from novaclient import client
 from keystoneauth1 import loading, session
+from novaclient import client
+from xlrd import open_workbook
 
 DEFAULT_TIMEOUT = 10 * 60
 WAITING_QUEUE_MAX_SIZE = 10
@@ -41,11 +42,11 @@ def get_logger():
 class Server(object):
     available = "active"
 
-    def __init__(self, id, name, host, tag, vcpu=0, ram=0, service=None, az=None):
+    def __init__(self, server_id, name, host, tag, vcpu=0, ram=0, service=None, az=None):
 
         # this id will not be used if
         # search name returns a list with more than 1 element
-        self.id = id
+        self.id = server_id
         self.name = name
         self.host = host
         self.vcpus = vcpu
@@ -53,14 +54,14 @@ class Server(object):
         self.tag = tag
 
         if service:
-            self.service = service
+            self.service = service.strip()
         elif tag:
-            self.service = tag.lower()
+            self.service = tag.strip()
         else:
-            self.service = None
+            self.service = ''
 
         self.az = az if az else "cn-north-3a"
-        self.aggregate = "%s_%s_%s" % (self.az, self.service, "general")
+        self.aggregate = "%s_%s_%s" % (self.az, self.service.lower(), "general")
 
     def __repr__(self):
         return self.__str__()
@@ -247,8 +248,8 @@ def is_active(server):
 
 
 class Host(object):
-    def __init__(self, id, name, vcpus, ram, **kwargs):
-        self.id = id
+    def __init__(self, host_id, name, vcpus, ram, **kwargs):
+        self.id = host_id
         self.name = name
         self.vcpus = vcpus
         self.ram = ram
@@ -271,10 +272,13 @@ class Host(object):
         return self.__str__()
 
     def __lt__(self, other):
+
+        # __lt__ return true if self < other
+        # be careful: bool(-1) will give True
         if self.vcpus == other.vcpus:
-            return other.ram < self.ram
+            return self.ram < other.ram
         else:
-            return other.vcpus < self.vcpus
+            return self.vcpus < other.vcpus
 
     def __eq__(self, other):
         return self.name == other.name
@@ -295,7 +299,8 @@ def assemble_aggregates(nova_client):
     :param nova_client:
     :return:
     """
-    hosts = {i.service['host']: Host(i.id, i.service['host'], i.vcpus, i.memory_mb)
+
+    hosts = {i.service['host']: Host(i.id, i.service['host'], i.vcpus - i.vcpus_used, i.free_ram_mb)
              for i in nova_client.hypervisors.list()}
     aggregates = {i.name: Aggregate(i.name, [hosts.get(j) for j in i.hosts])
                   for i in nova_client.aggregates.list()}
@@ -330,7 +335,8 @@ def schedule_vms(aggregates, vms):
         if current_host not in [i.name for i in aggregates[correct_aggregate].hosts]:
             # compute dest and assign to vm
             hosts = aggregates[correct_aggregate].hosts
-            index = sorted(range(len(hosts)), key=lambda i: hosts[i])[-1]
+            indices = sorted(range(len(hosts)), key=lambda j: hosts[j])
+            index = indices[-1]
             logger.info("%s will be moved from %s to %s", vm.id, current_host, hosts[index])
             setattr(vm, DEST, hosts[index].name)
 
@@ -365,7 +371,7 @@ def read_config(nova_client, config_path):
 
             # there should not be more than defined
             # number of columns
-            if col > MAX_COLUMNS:
+            if col >= MAX_COLUMNS:
                 break
 
             # value should not have letters like 'G'
@@ -373,15 +379,18 @@ def read_config(nova_client, config_path):
             args[COLUME_NAME[col]] = val
 
         logger.info("args: %s", str(args))
-        servers.extend(Server.create(**args))
+        try:
+            servers.extend(Server.create(**args))
+        except Exception:
+            logger.exception("get server error..")
 
     # it is hard to know where to find it in excel
     names = {}
     for i in range(len(servers)):
-        if not names.get(servers[i].name):
-            names[servers[i].name] = [i]
+        if not names.get(servers[i].id):
+            names[servers[i].id] = [i]
         else:
-            names[servers[i].name].append(i)
+            names[servers[i].id].append(i)
 
     dumplicated_index = []
     dumplicated_names = []
@@ -455,8 +464,9 @@ def tag_and_move_vm(nova_client, vms, preview=False):
             else:
                 ret['ignored'].append(vm)
 
-        except Exception as e:
+        except Exception:
             logger.exception("add tag to vm: %s failed", str(vm))
+            ret['error'].append(vm)
 
         while waiting_list.qsize() == WAITING_QUEUE_MAX_SIZE:
             # block here
@@ -567,7 +577,7 @@ def get(obj, name, *args):
     try:
         if isinstance(obj, dict) and obj[name]:
             return obj[name]
-    except Exception as e:
+    except Exception:
         pass
 
     for i in args:
