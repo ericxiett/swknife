@@ -2,7 +2,8 @@
 import os
 import sys
 import time
-
+import xlwt
+import datetime
 import xlrd
 from keystoneauth1 import loading, session
 from cinderclient import client as clientc
@@ -15,6 +16,8 @@ PROJECT_NAME = 'admin'
 DOMAIN_NAME = 'Default'
 DOMAIN_ID = 'default'
 VERSION = '2.1'
+
+VALID_FEILDS = ['ID', 'volumeID', 'volumeName', 'date', 'productTag']
 
 
 def get_cinder_client():
@@ -33,41 +36,74 @@ def main():
     print('welcome to use this scripts to add volume metadata..')
     cinder = get_cinder_client()
     vollist = cinder.volumes.list()
-    #find out unset metadata volumes
-    try:
-        print('find out unset metadata volumes ..')
-        for volume in vollist:
-            volfilter(volume=volume)
-    except Exception as e:
-        print(e.message)
+    # find out unset metadata volumes
+    vols = volfilter(vollist=vollist)
+    # write record to excel
+    write_record_to_excel(vols=vols)
+    # add metadata to volumes
+    add_metadata_to_vol(vols)
 
 
-def volfilter(volume):
+def volfilter(vollist):
+    print('find out unset metadata volumes ..')
     try:
         vols = []
-        cinder = get_cinder_client()
-        vid = cinder.volumes.get(volume)
-        md = vid.metadata
-        if 'productTag' not in md:
-            vols = vols.append(volume)
-        add_metadata_to_vol(vols=vols)
+        for volume in vollist:
+            md = volume.metadata
+            if 'productTag' not in md:
+                vols.append(volume)
+        return vols
     except Exception as e:
         print(e.message)
 
 
 def add_metadata_to_vol(vols):
     cc = get_cinder_client()
-    for vid in vols:
+    for vol in vols:
         try:
-            vol = cc.volumes.get(vid)
+            # vol = cc.volumes.get(vid)
             meta = {'productTag': 'ebs'}
             cc.volumes.set_metadata(vol, meta)
             time.sleep(2)
-            vol = cc.volumes.get(vid)
-            print('%s meta: %s' % (vid, vol.metadata))
+            # vol = cc.volumes.get(vol)
+            print('%s meta: %s' % (vol, vol.metadata))
         except Exception as e:
             print('Got error %s' % e)
             continue
+
+
+def write_record_to_excel(vols):
+    style0 = xlwt.easyxf('font: name Times New Roman, bold on;'
+                         'borders: left thin, right thin, top thin, bottom thin;',
+                         num_format_str='#,##0.00')
+    style1 = xlwt.easyxf('font: name Times New Roman;'
+                         'borders: left thin, right thin, top thin, bottom thin;')
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('volumes')
+    for col in range(len(VALID_FEILDS)):
+        ws.write(0, col, VALID_FEILDS[col], style0)
+    # cinder = get_cinder_client()
+    # volids = []
+    # volnames = []
+    # for vol in vols:
+    #     volid = vol.id
+    #     volids.append(volid)
+    #     volname = vol.name
+    #     volnames.append(volname)
+    #     for n in range(len(volids)):
+    #         ws.write(n+1, 0, n+1, style0)
+    #         ws.write(n+1, 1, volid, style0)
+    #         ws.write(n+1, 2, volname, style0)
+    #         ws.write(n+1, 3, datetime.datetime.now(), style0)
+    #         ws.write(n+1, 4, 'productTag=ebs')
+    for n, vol in range(len(vols)), vols:
+        ws.write(n + 1, 0, n + 1, style0)
+        ws.write(n + 1, 1, vol.id, style0)
+        ws.write(n + 1, 2, vol.name, style0)
+        ws.write(n + 1, 3, datetime.datetime.now(), style0)
+        ws.write(n + 1, 4, 'productTag=ebs')
+    wb.save('add_vol_metadata.xls')
+
 
 
 if __name__ == '__main__':
