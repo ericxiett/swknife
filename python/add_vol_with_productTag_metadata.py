@@ -52,8 +52,8 @@ def volfilter(vollist):
                     vols.append(volume)
             else:
                 vols.append(volume)
-        print "finish volfilter circle."
-        print vols
+        print("finish volfilter circle.")
+        print(vols)
         return vols
     except Exception as e:
         print(e.message)
@@ -75,7 +75,7 @@ def add_metadata_to_vol(vols):
 
 
 def write_record_to_excel(vols):
-    print "start write record to excel......"
+    print("start write record to excel......")
     style0 = xlwt.easyxf('font: name Times New Roman, bold on;'
                          'borders: left thin, right thin, top thin, bottom thin;',
                          num_format_str='#,##0.00')
@@ -86,14 +86,14 @@ def write_record_to_excel(vols):
         ws = wb.add_sheet('volumes')
         for col in range(len(VALID_FEILDS)):
             ws.write(0, col, VALID_FEILDS[col], style0)
-        print "write titles....."
+        print("write titles.....")
         for n, vol in zip(range(len(vols)), vols):
             ws.write(n + 1, 0, n + 1, style0)
             ws.write(n + 1, 1, vol.id, style0)
             ws.write(n + 1, 2, vol.name, style0)
             ws.write(n + 1, 3, datetime.datetime.now(), style0)
             ws.write(n + 1, 4, 'productTag=ebs')
-            print "write volume   name:"+vol.name+"  id:"+vol.id
+            print("write volume   name:"+vol.name+"  id:"+vol.id)
         wb.save('add_vol_metadata.xls')
     except Exception as e:
         print(e.message)
