@@ -1,11 +1,10 @@
-#coding=utf-8
+# coding=utf-8
 import sys
 import time
 import xlwt
 import datetime
 from keystoneauth1 import loading, session
 from cinderclient import client as clientc
-
 
 AUTH_URL = 'http://192.168.2.11:35357/v3'
 USERNAME = 'admin'
@@ -33,7 +32,7 @@ def get_cinder_client():
 def main():
     print('welcome to use this scripts to add volume metadata..')
     cinder = get_cinder_client()
-    vollist = cinder.volumes.list()
+    vollist = cinder.volumes.list(search_opts={"all_tenants": True})
     # find out unseted metadata volumes
     vols = volfilter(vollist=vollist)
     # write record to excel
@@ -47,9 +46,14 @@ def volfilter(vollist):
     try:
         vols = []
         for volume in vollist:
-            md = volume.metadata
-            if 'productTag' not in md:
+            if volume.metadata:
+                md = volume.metadata
+                if not md.has_key('productTag'):
+                    vols.append(volume)
+            else:
                 vols.append(volume)
+        print "finish volfilter circle."
+        print vols
         return vols
     except Exception as e:
         print(e.message)
@@ -62,7 +66,7 @@ def add_metadata_to_vol(vols):
             # vol = cc.volumes.get(vid)
             meta = {'productTag': 'ebs'}
             cc.volumes.set_metadata(vol, meta)
-            time.sleep(2)
+            # time.sleep(2)
             # vol = cc.volumes.get(vol)
             print('%s meta: %s' % (vol, vol.metadata))
         except Exception as e:
@@ -71,6 +75,7 @@ def add_metadata_to_vol(vols):
 
 
 def write_record_to_excel(vols):
+    print "start write record to excel......"
     style0 = xlwt.easyxf('font: name Times New Roman, bold on;'
                          'borders: left thin, right thin, top thin, bottom thin;',
                          num_format_str='#,##0.00')
@@ -81,12 +86,14 @@ def write_record_to_excel(vols):
         ws = wb.add_sheet('volumes')
         for col in range(len(VALID_FEILDS)):
             ws.write(0, col, VALID_FEILDS[col], style0)
-        for n, vol in range(len(vols)), vols:
+        print "write titles....."
+        for n, vol in zip(range(len(vols)), vols):
             ws.write(n + 1, 0, n + 1, style0)
             ws.write(n + 1, 1, vol.id, style0)
             ws.write(n + 1, 2, vol.name, style0)
             ws.write(n + 1, 3, datetime.datetime.now(), style0)
             ws.write(n + 1, 4, 'productTag=ebs')
+            print "write volume   name:"+vol.name+"  id:"+vol.id
         wb.save('add_vol_metadata.xls')
     except Exception as e:
         print(e.message)
