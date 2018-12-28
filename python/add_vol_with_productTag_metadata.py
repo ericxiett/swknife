@@ -92,7 +92,7 @@ def write_record_to_excel(vols):
             ws.write(n + 1, 1, vol.id, style0)
             ws.write(n + 1, 2, vol.name, style0)
             ws.write(n + 1, 3, datetime.datetime.now(), style0)
-            ws.write(n + 1, 4, 'productTag=ebs')
+            ws.write(n + 1, 4, 'productTag=ebs', style0)
             print("write volume   name:"+vol.name+"  id:"+vol.id)
         wb.save('add_vol_metadata.xls')
     except Exception as e:
