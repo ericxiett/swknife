@@ -1,10 +1,8 @@
 #coding=utf-8
-import os
 import sys
 import time
 import xlwt
 import datetime
-import xlrd
 from keystoneauth1 import loading, session
 from cinderclient import client as clientc
 
@@ -36,7 +34,7 @@ def main():
     print('welcome to use this scripts to add volume metadata..')
     cinder = get_cinder_client()
     vollist = cinder.volumes.list()
-    # find out unset metadata volumes
+    # find out unseted metadata volumes
     vols = volfilter(vollist=vollist)
     # write record to excel
     write_record_to_excel(vols=vols)
@@ -45,7 +43,7 @@ def main():
 
 
 def volfilter(vollist):
-    print('find out unset metadata volumes ..')
+    print('find out unseted metadata volumes ..')
     try:
         vols = []
         for volume in vollist:
@@ -78,32 +76,20 @@ def write_record_to_excel(vols):
                          num_format_str='#,##0.00')
     style1 = xlwt.easyxf('font: name Times New Roman;'
                          'borders: left thin, right thin, top thin, bottom thin;')
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('volumes')
-    for col in range(len(VALID_FEILDS)):
-        ws.write(0, col, VALID_FEILDS[col], style0)
-    # cinder = get_cinder_client()
-    # volids = []
-    # volnames = []
-    # for vol in vols:
-    #     volid = vol.id
-    #     volids.append(volid)
-    #     volname = vol.name
-    #     volnames.append(volname)
-    #     for n in range(len(volids)):
-    #         ws.write(n+1, 0, n+1, style0)
-    #         ws.write(n+1, 1, volid, style0)
-    #         ws.write(n+1, 2, volname, style0)
-    #         ws.write(n+1, 3, datetime.datetime.now(), style0)
-    #         ws.write(n+1, 4, 'productTag=ebs')
-    for n, vol in range(len(vols)), vols:
-        ws.write(n + 1, 0, n + 1, style0)
-        ws.write(n + 1, 1, vol.id, style0)
-        ws.write(n + 1, 2, vol.name, style0)
-        ws.write(n + 1, 3, datetime.datetime.now(), style0)
-        ws.write(n + 1, 4, 'productTag=ebs')
-    wb.save('add_vol_metadata.xls')
-
+    try:
+        wb = xlwt.Workbook()
+        ws = wb.add_sheet('volumes')
+        for col in range(len(VALID_FEILDS)):
+            ws.write(0, col, VALID_FEILDS[col], style0)
+        for n, vol in range(len(vols)), vols:
+            ws.write(n + 1, 0, n + 1, style0)
+            ws.write(n + 1, 1, vol.id, style0)
+            ws.write(n + 1, 2, vol.name, style0)
+            ws.write(n + 1, 3, datetime.datetime.now(), style0)
+            ws.write(n + 1, 4, 'productTag=ebs')
+        wb.save('add_vol_metadata.xls')
+    except Exception as e:
+        print(e.message)
 
 
 if __name__ == '__main__':
