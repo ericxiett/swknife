@@ -44,8 +44,8 @@ def clean_up(reserved):
     for vm in vms:
         if vm.id not in reserved and \
                 ('ECS' in vm.name or 'test' in vm.name):
-            print('VM ID %s should be deleted' % vm.id)
-            novac.servers.force_delete(vm.id)
+            print('VM ID %s %s should be deleted' % (vm.id, vm.name))
+            #novac.servers.force_delete(vm.id)
 
 
 def main():
