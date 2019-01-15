@@ -40,7 +40,7 @@ def get_nova_client():
 
 def clean_up(reserved):
     novac = get_nova_client()
-    vms = novac.servers.list()
+    vms = novac.servers.list(search_opts={'all_tenants': True})
     for vm in vms:
         if vm.id not in reserved and \
                 ('ECS' in vm.name or 'test' in vm.name):
