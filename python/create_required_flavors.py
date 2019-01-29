@@ -344,8 +344,8 @@ def get_parser():
     parser = argparse.ArgumentParser(description='generate required flavors')
     parser.add_argument('-f', '--config', dest='config_path', required=True,
                         help='path to the configuration file')
-    parser.add_argument('-t', '--type', dest='type', default="Flavor", help='path to the configuration file')
-    parser.add_argument('-i', '--index', dest='index', default=0, help='index of excel sheet')
+    parser.add_argument('-t', '--type', dest='type', default="Flavor", help='ClassicFlavor/Flavor')
+    parser.add_argument('-i', '--index', dest='index', type=int, default=0, help='index of excel sheet')
     parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True,
                         default=False, help='enable debugging')
 

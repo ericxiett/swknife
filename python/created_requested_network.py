@@ -318,7 +318,7 @@ def get_parser():
     parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True,
                         default=False, help='enable debugging')
     parser.add_argument('-o', '--ouput', dest='output_file', default="networks.xls", help='write output to file')
-    parser.add_argument('-i', '--index', dest='index', default=0, help='index of excel sheet')
+    parser.add_argument('-i', '--index', dest='index', type=int, default=0, help='index of excel sheet')
 
     return parser.parse_args()
 
