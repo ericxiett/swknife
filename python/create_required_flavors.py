@@ -106,6 +106,9 @@ class Flavor(object):
         ram_tuple = split_string(memory)
         disk_tuple = split_string(disk)
 
+        if not bandwidth:
+            bandwidth = 0
+
         flavors = [cls(name, c, r, d, bandwidth, spec) for c in range(*cpu_tuple) for r in range(*ram_tuple) for d in
                    range(*disk_tuple)]
         return flavors
