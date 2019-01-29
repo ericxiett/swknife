@@ -146,7 +146,7 @@ def zero_to_one(x):
     return 1 if x == 0 else 0
 
 
-def read_template_from_excel(config_path, flavor_cls):
+def read_template_from_excel(config_path, flavor_cls, index=0):
     """
     read flavor configurations from excel
     :param config_path: path to excel configuration file
@@ -164,23 +164,24 @@ def read_template_from_excel(config_path, flavor_cls):
     logger.info("read configuration from %s", config_path)
     wb = open_workbook(config_path)
 
-    for sheet in wb.sheets():
-        # ignore the first row
-        for row in range(1, sheet.nrows):
-            args = {}
-            for col in range(sheet.ncols):
+    sheet = wb.sheets()[index]
 
-                # there should not be more than defined
-                # number of columns
-                if col > MAX_COLUMNS:
-                    break
+    # ignore the first row
+    for row in range(1, sheet.nrows):
+        args = {}
+        for col in range(sheet.ncols):
 
-                # fixme value might have letter like 'G'
-                val = sheet.cell(row, col).value
-                args[COLUME_NAME[col]] = val
+            # there should not be more than defined
+            # number of columns
+            if col > MAX_COLUMNS:
+                break
 
-            logger.info("args: %s", str(args))
-            flavors.extend(flavor_cls.create(**args))
+            # fixme value might have letter like 'G'
+            val = sheet.cell(row, col).value
+            args[COLUME_NAME[col]] = val
+
+        logger.info("args: %s", str(args))
+        flavors.extend(flavor_cls.create(**args))
 
     logger.info("retrieve %s records from %s", str(flavors), config_path)
     # return a list of Flavors
@@ -344,6 +345,7 @@ def get_parser():
     parser.add_argument('-f', '--config', dest='config_path', required=True,
                         help='path to the configuration file')
     parser.add_argument('-t', '--type', dest='type', default="Flavor", help='path to the configuration file')
+    parser.add_argument('-i', '--index', dest='index', default=0, help='index of excel sheet')
     parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True,
                         default=False, help='enable debugging')
 
@@ -365,7 +367,8 @@ def main():
     logger = get_logger()
     logger.info('configuration found at %s', parser.config_path)
     flavor_cls_name = parser.type
-    flavors = read_template_from_excel(parser.config_path, getattr(sys.modules[__name__], flavor_cls_name))
+    index = parser.index
+    flavors = read_template_from_excel(parser.config_path, getattr(sys.modules[__name__], flavor_cls_name), index=index)
 
     # init nova client
     nova_client = init_nova_client({})
