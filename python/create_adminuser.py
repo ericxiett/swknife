@@ -16,10 +16,11 @@ PASSWORD = '89rqdHLMN5rm0x1P'
 PROJECT_NAME = 'admin'
 DOMAIN_NAME = 'Default'
 DOMAIN_ID = 'default'
-P_PROJECT="poss"
-USERLIST=["ecs_admin","slb_admin"]
-
-FIELDS = ['index', 'user_name', 'user_password', 'project_name','project_id']
+REGION_NAME = 'RegionOne'
+P_PROJECT="Inspurcloud-poss"
+#USERLIST=["ecs_admin","slb_admin"]
+USERLIST=["ecs_admin","slb_admin","ebs_admin","cps_admin","hdinsight_admin","cks_admin","rds_admin","eip_admin"]
+FIELDS = ['index', 'user_name', 'user_password', 'project_name','project_id','region_name']
 
 #VALID_USERS = ['ecs_admin', 'slb_admin','ebs_admin','cks_admin']
 
@@ -38,7 +39,7 @@ def build_sheet():
 
     return wb, ws, style1
 
-def output_users(wb, ws, style,index,username, password,project_name,project_id):
+def output_users(wb, ws, style,index,username, password,project_name,project_id,region_name):
 
     #wb, ws, style = build_sheet()
 
@@ -47,8 +48,8 @@ def output_users(wb, ws, style,index,username, password,project_name,project_id)
     ws.write(index, 2, password, style)
     ws.write(index, 3, project_name, style)
     ws.write(index, 4, project_id, style)
-
-    wb.save('boss_users.xls')
+    ws.write(index, 5, region_name, style)
+    wb.save('Inspurcloud-poss_users.xls')
 
 def get_keystone_client():
     loader = loading.get_plugin_loader('password')
@@ -123,7 +124,7 @@ def main():
     print('Welcome to use this script,create project and user')
     project_name = P_PROJECT
     domain_id = DOMAIN_ID
-
+    region_name = REGION_NAME
     project_id = create_project(project_name, domain_id)
     print("project_id:%s" % project_id)
     #init xlsx
@@ -141,7 +142,7 @@ def main():
         print("role_id:%s" %role_id )
         user_grant(role_id, userid, project_id)
         #if user exist password ""
-        output_users(wb, ws, style,index, username, userpass, project_name, project_id)
+        output_users(wb, ws, style,index, username, userpass, project_name, project_id,region_name)
         index +=1
     return 0
 
