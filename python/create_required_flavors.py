@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-import math
-import re
-import os
 import logging
-from novaclient import client
+import os
+import re
+import sys
+
 from keystoneauth1 import session, loading
+from novaclient import client
 from xlrd import open_workbook
 
 DEFAULT_SPEC = "general"
@@ -106,6 +106,9 @@ class Flavor(object):
         ram_tuple = split_string(memory)
         disk_tuple = split_string(disk)
 
+        if not bandwidth:
+            bandwidth = 0
+
         flavors = [cls(name, c, r, d, bandwidth, spec) for c in range(*cpu_tuple) for r in range(*ram_tuple) for d in
                    range(*disk_tuple)]
         return flavors
@@ -146,7 +149,7 @@ def zero_to_one(x):
     return 1 if x == 0 else 0
 
 
-def read_template_from_excel(config_path, flavor_cls):
+def read_template_from_excel(config_path, flavor_cls, index=0):
     """
     read flavor configurations from excel
     :param config_path: path to excel configuration file
@@ -164,26 +167,24 @@ def read_template_from_excel(config_path, flavor_cls):
     logger.info("read configuration from %s", config_path)
     wb = open_workbook(config_path)
 
-    # by default, there is only a single sheet
-    sheet = wb.sheets()[0]
+    sheet = wb.sheets()[index]
 
-    for sheet in wb.sheets():
-        # ignore the first row
-        for row in range(1, sheet.nrows):
-            args = {}
-            for col in range(sheet.ncols):
+    # ignore the first row
+    for row in range(1, sheet.nrows):
+        args = {}
+        for col in range(sheet.ncols):
 
-                # there should not be more than defined
-                # number of columns
-                if col > MAX_COLUMNS:
-                    break
+            # there should not be more than defined
+            # number of columns
+            if col > MAX_COLUMNS:
+                break
 
-                # fixme value might have letter like 'G'
-                val = sheet.cell(row, col).value
-                args[COLUME_NAME[col]] = val
+            # fixme value might have letter like 'G'
+            val = sheet.cell(row, col).value
+            args[COLUME_NAME[col]] = val
 
-            logger.info("args: %s", str(args))
-            flavors.extend(flavor_cls.create(**args))
+        logger.info("args: %s", str(args))
+        flavors.extend(flavor_cls.create(**args))
 
     logger.info("retrieve %s records from %s", str(flavors), config_path)
     # return a list of Flavors
@@ -346,7 +347,8 @@ def get_parser():
     parser = argparse.ArgumentParser(description='generate required flavors')
     parser.add_argument('-f', '--config', dest='config_path', required=True,
                         help='path to the configuration file')
-    parser.add_argument('-t', '--type', dest='type', default="Flavor", help='path to the configuration file')
+    parser.add_argument('-t', '--type', dest='type', default="Flavor", help='ClassicFlavor/Flavor')
+    parser.add_argument('-i', '--index', dest='index', type=int, default=0, help='index of excel sheet')
     parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True,
                         default=False, help='enable debugging')
 
@@ -368,7 +370,8 @@ def main():
     logger = get_logger()
     logger.info('configuration found at %s', parser.config_path)
     flavor_cls_name = parser.type
-    flavors = read_template_from_excel(parser.config_path, getattr(sys.modules[__name__], flavor_cls_name))
+    index = parser.index
+    flavors = read_template_from_excel(parser.config_path, getattr(sys.modules[__name__], flavor_cls_name), index=index)
 
     # init nova client
     nova_client = init_nova_client({})

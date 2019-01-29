@@ -6,9 +6,9 @@ import time
 from keystoneauth1 import loading, session
 from cinderclient import client as clientc
 
-AUTH_URL = 'http://192.168.2.11:35357/v3'
+AUTH_URL = 'http://10.200.0.20:35357/v3'
 USERNAME = 'admin'
-PASSWORD = '89rqdHLMN5rm0x1P'
+PASSWORD = 'vjYXTG6vptMNweIx'
 PROJECT_NAME = 'admin'
 DOMAIN_NAME = 'Default'
 DOMAIN_ID = 'default'
@@ -37,8 +37,6 @@ def main():
     vols = volfilter(vollist=vollist)
     # write record to excel
     write_record_to_excel(vols=vols)
-    # add metadata to volumes
-    add_metadata_to_vol(vols)
 
 
 def volfilter(vollist):
@@ -52,31 +50,12 @@ def volfilter(vollist):
                     vols.append(volume)
             else:
                 vols.append(volume)
-
         print("finish volfilter circle.")
-        print(vols)
+        for vol in vols:
+            print(vol, vol.volume_type)
         return vols
     except Exception as e:
         print(e.message)
-
-
-def add_metadata_to_vol(vols):
-    cc = get_cinder_client()
-    number = 0
-    print("summary: %s" % len(vols))
-    for vol in vols:
-        try:
-            # vol = cc.volumes.get(vid)
-            meta = {'productTag': 'EBS'}
-            cc.volumes.set_metadata(vol, meta)
-            # time.sleep(2)
-            # vol = cc.volumes.get(vol)
-            number = number + 1
-            print('%s %s meta: %s' % (number, vol, vol.metadata))
-        except Exception as e:
-            print('Got error %s' % e)
-            continue
-    print("changed summary: %s" % number)
 
 
 def write_record_to_excel(vols):

@@ -181,10 +181,11 @@ def dict_zip(a, b):
     return ret
 
 
-def read_template_from_excel(config_path):
+def read_template_from_excel(config_path, index=0):
     """
     read flavor configurations from excel
     :param config_path: path to excel configuration file
+    :param index: index of excel sheet containing network information
     :return: a list of flavors
     """
 
@@ -198,7 +199,7 @@ def read_template_from_excel(config_path):
     wb = open_workbook(config_path)
 
     # by default, there is only a single sheet
-    sheet = wb.sheets()[0]
+    sheet = wb.sheets()[index]
 
     # ignore the first row
     for row in range(1, sheet.nrows):
@@ -317,6 +318,7 @@ def get_parser():
     parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True,
                         default=False, help='enable debugging')
     parser.add_argument('-o', '--ouput', dest='output_file', default="networks.xls", help='write output to file')
+    parser.add_argument('-i', '--index', dest='index', type=int, default=0, help='index of excel sheet')
 
     return parser.parse_args()
 
@@ -335,7 +337,9 @@ def main():
     # assemble flavor objects
     logger = get_logger()
     logger.info('configuration found at %s', parser.config_path)
-    networks = read_template_from_excel(parser.config_path)
+
+    index = parser.index
+    networks = read_template_from_excel(parser.config_path, index=index)
 
     # init nova client
     # fixme read credentials from command line & config files?
