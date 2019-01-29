@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-import math
-import re
-import os
 import logging
-from novaclient import client
+import os
+import re
+import sys
+
 from keystoneauth1 import session, loading
+from novaclient import client
 from xlrd import open_workbook
 
 DEFAULT_SPEC = "general"
@@ -163,9 +163,6 @@ def read_template_from_excel(config_path, flavor_cls):
 
     logger.info("read configuration from %s", config_path)
     wb = open_workbook(config_path)
-
-    # by default, there is only a single sheet
-    sheet = wb.sheets()[0]
 
     for sheet in wb.sheets():
         # ignore the first row
