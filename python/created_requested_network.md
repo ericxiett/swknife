@@ -15,6 +15,11 @@
   * ip(allocation) pool? [{"start": xxx, "end": xxx}, ...]
 * Exception handling
 
+## TABLE STRUCTURE
+
+| service | network name | subnet name | cidr | ip pool | vlan id | disable dhcp | disable gateway | dns | host routes |
+|---|---|---|---|---|---|---|---|---|---|
+
 ## RUN
 
 ```bash
