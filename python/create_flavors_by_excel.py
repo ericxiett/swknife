@@ -66,6 +66,8 @@ def main():
         print "Error: Please input correct config file path."
         raise Exception("path: %s does not exist!", params.conf_path)
 
+    uuids = ''
+
     novaclient = get_nova_client()
     rsheet = workbook.sheet_by_name("create_flavors")
     for row in range(1, rsheet.nrows):
@@ -91,12 +93,15 @@ def main():
         try:
             flavor = novaclient.flavors.create(name=name, ram=memory * 1024, vcpus=cpu, disk=disk)
             print "Info: Create flavor success.Flavor ID="+flavor.id
+            uuids = uuids + "'" + flavor.id + "',"
             flavor = flavor.set_keys(metadata)
             print "Info: Set Metadata success."
         except Exception as e:
             print "Error: Create flavor & set Metadata failed."
             print e
         print "________________________________________________"
+    print "Finished."
+    print "All success flavor uuids: "+uuids
 
 
 if __name__ == '__main__':

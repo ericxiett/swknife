@@ -9,9 +9,9 @@ from novaclient import client as novac
 # Global variables
 # XLS_FILE = 'HgInformation.xlsx'
 
-AUTH_URL = 'http://192.168.2.11:35357/v3'
+AUTH_URL = ''
 USERNAME = 'admin'
-PASSWORD = '89rqdHLMN5rm0x1P'
+PASSWORD = ''
 PROJECT_NAME = 'admin'
 DOMAIN_NAME = 'Default'
 DOMAIN_ID = 'default'
@@ -76,7 +76,7 @@ def init_check(XLS_FILE):
     # read config file
     if os.path.exists(XLS_FILE):
         book = xlrd.open_workbook(XLS_FILE)
-        sheet = book.sheet_by_name('Sheet1')
+        sheet = book.sheet_by_name('host_aggregates')
     else:
         print("Error: Host aggregate configation file '" + XLS_FILE + "'is not existed.")
         return 0
