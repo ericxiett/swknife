@@ -3,18 +3,20 @@
 
 import sys
 import subprocess,re
-
+import datetime
 from keystoneauth1 import loading, session
 
 # Global variables
 from glanceclient import Client
 import os
-import xlwt
+import xlwt,xlrd
 from xlrd import open_workbook
 
 
 MAX_COLUMNS = 4
 COLUME_NAME = ["index","image_uuid", "image_name", "image_tags"]
+T = datetime.date.today()
+INPUT_FILE = "swknife_collect.xlsx"
 
 AUTH_URL='http://192.168.2.10:35357/v3'
 USERNAME = 'admin'
@@ -35,16 +37,7 @@ def get_glance_client():
     sess = session.Session(auth=auth)
     return Client('2',endpoint=GLANCE_URL,session=sess)
 
-def read_config(config_path):
-    if not os.path.exists(config_path):
-        raise Exception("path: %s does not exist!", config_path)
-
-    print("read configuration from %s" % (config_path))
-    wb = open_workbook(config_path)
-
-    # by default, there is only a single sheet
-    sheet = wb.sheets()[0]
-
+def tag_to_image(sheet):
     # ignore the first row
     for row in range(1, sheet.nrows):
         args = {}
@@ -55,7 +48,6 @@ def read_config(config_path):
             if col > MAX_COLUMNS:
                 break
 
-            # fixme value might have letter like 'G'
             val = sheet.cell(row, col).value
             args[COLUME_NAME[col]] = val
 
@@ -101,20 +93,11 @@ def output_one_tags(wb, ws, style,index,image_uuid, image_name, image_tags):
     ws.write(index, 2, image_name, style)
     ws.write(index, 3, image_tags, style)
 
-    wb.save('public_images.xls')
+    wb.save('export_tag_images-'+T.strftime('%Y-%m-%d')+'.xls')
 
-def write_all_tags(config_path):
+def write_all_tags(sheet):
     glance_client = get_glance_client()
-    if not os.path.exists(config_path):
-        raise Exception("path: %s does not exist!", config_path)
-
-    print("read configuration from %s" % (config_path))
     print("export all set images tags................")
-    wb = open_workbook(config_path)
-
-    # by default, there is only a single sheet
-    sheet = wb.sheets()[0]
-
     # ignore the first row
     wb, ws, style = build_sheet()
     index = 1
@@ -126,14 +109,12 @@ def write_all_tags(config_path):
             # number of columns
             if col > MAX_COLUMNS:
                 break
-
-            # fixme value might have letter like 'G'
             val = sheet.cell(row, col).value
             args[COLUME_NAME[col]] = val
         image_uuid = args.get('image_uuid').strip()
         if  get_image_tags(image_uuid) is None:
             print("image:%s not exist" % image_uuid)
-            image_tags=""
+            image_tags="None"
             image_name = args.get('image_name')
         else:
             image_tags = ','.join(get_image_tags(image_uuid))
@@ -142,7 +123,7 @@ def write_all_tags(config_path):
         output_one_tags(wb, ws, style, index, image_uuid, image_name, image_tags)
         print("export image,uuid: %s,name:%s,tags:%s successful." %(image_uuid, image_name, image_tags))
         index +=1
-    print("export set images tags file:public_images.xls successful.")
+    print("export set images tags file:"+"export_tag_images-"+T.strftime('%Y-%m-%d')+".xls"+" successful.")
 
 def get_images():
     glance_client = get_glance_client()
@@ -173,7 +154,7 @@ def get_image_tags(image_id):
         print("image:%s ,tag info:%s " % (image_id, image_tags))
         return image_tags
     except Exception:
-        print("Could not find resource:%s" % image_id)
+        print("Could not find image resource:%s" % image_id)
         return None
 
 
@@ -195,12 +176,36 @@ def delete_image_tags(image_id,tag_name):
     except Exception:
         print("delete image:%s ,tag:%s failure" % (image_id,tag_name))
 
+def get_parse():
+    import argparse
+    parser = argparse.ArgumentParser(description="parses information:")
+    parser.add_argument('-i', '--input', dest='conf_path', help='Input images information excel file path.',
+                        default=INPUT_FILE)
+    return parser.parse_args()
+
+
+def read_conf(file=INPUT_FILE):
+    if os.path.exists(file):
+        readbook = xlrd.open_workbook(file)
+        return readbook
+    else:
+        print "Error: Config File:" + file + " is not existed."
+        return None
+
 def main():
-    config_path="image_tags.xlsx"
+    params = get_parse()
+
+    workbook = read_conf(file=params.conf_path)
+    if not workbook:
+        print "Error: Please input correct config file path."
+        raise Exception("path: %s does not exist!", params.conf_path)
+
+    #get excel sheet data
+    rsheet = workbook.sheet_by_name("tag_images")
     #add tag
-    read_config(config_path)
+    tag_to_image(rsheet)
     #export tag
-    write_all_tags(config_path)
+    write_all_tags(rsheet)
     return 0
 
 
