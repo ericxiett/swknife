@@ -13,9 +13,12 @@ class RequiredInstanceInfo(object):
         self.uuid = instance.id
         self.name = instance.name
         self.status = instance.status
-        self.user = self._get_username_by_id(instance.user_id)
-        self.project = self._get_project_name_by_id(instance.tenant_id)
-        self.image = self._get_image_name_by_id(instance.image.get('id'))
+        self.user = \
+            self._get_username_by_id(instance.user_id) if instance.user_id else None
+        self.project = \
+            self._get_project_name_by_id(instance.tenant_id) if instance.tenant_id else None
+        self.image = \
+            self._get_image_name_by_id(instance.image.get('id')) if instance.image else None
         self.addresses = instance.addresses
 
     def _get_username_by_id(self, user_id):
@@ -35,12 +38,16 @@ class RequiredInstanceInfo(object):
 
 
 def get_all_vms():
+    print('Starting to get vms from nova...')
     novac = get_nova_client()
     vms_list = []
+    index = 1
     instances = novac.servers.list(
         search_opts={'all_tenants': True}, detailed=True)
     for ins in instances:
         vms_list.append(RequiredInstanceInfo(ins))
+        print('\t%s: %s %s' % (index, ins.id, ins.name))
+        index += 1
     while True:
         instances = novac.servers.list(
             search_opts={'all_tenants': True}, detailed=True,
@@ -50,7 +57,10 @@ def get_all_vms():
             break
         for ins in instances:
             vms_list.append(RequiredInstanceInfo(ins))
+            print('\t%s: %s %s' % (index, ins.id, ins.name))
+            index += 1
 
+    print('Ending to get vms from nova! Total %s records' % index)
     return vms_list
 
 
@@ -80,6 +90,7 @@ def export_to_excel(vms_list):
         row += 1
 
     wb.save('all_instances.xls')
+    print('Export vms to excel successfully!')
 
 
 def main():
