@@ -91,7 +91,7 @@ def export_to_excel(vms_list):
         ws.write(row, 4, vminfo.user, style1)
         ws.write(row, 5, vminfo.project, style1)
         ws.write(row, 6, vminfo.image, style1)
-        ws.write(row, 7, vminfo.addresses, style1)
+        ws.write(row, 7, str(vminfo.addresses), style1)
         row += 1
 
     wb.save('all_instances.xls')
