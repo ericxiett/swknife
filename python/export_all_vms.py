@@ -51,7 +51,7 @@ def get_all_vms():
         search_opts={'all_tenants': True}, detailed=True)
     for ins in instances:
         vms_list.append(RequiredInstanceInfo(ins))
-        print('\t%s: %s %s' % (index, ins.id, ins.name))
+        print('\t%s: %s %s' % (index, ins.id, ins.name.encode('latin-1', 'replace')))
         index += 1
     while True:
         instances = novac.servers.list(
@@ -62,7 +62,7 @@ def get_all_vms():
             break
         for ins in instances:
             vms_list.append(RequiredInstanceInfo(ins))
-            print('\t%s: %s %s' % (index, ins.id, ins.name))
+            print('\t%s: %s %s' % (index, ins.id, ins.name.encode('latin-1', 'replace')))
             index += 1
 
     print('Ending to get vms from nova! Total %s records' % index)
