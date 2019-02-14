@@ -33,7 +33,12 @@ class RequiredInstanceInfo(object):
 
     def _get_image_name_by_id(self, image_id):
         gc = get_glance_client()
-        image_info = gc.images.get(image_id)
+        try:
+            image_info = gc.images.get(image_id)
+        except Exception as e:
+            print('Get image error %s' % e.message)
+            return None
+
         return image_info.name
 
 
