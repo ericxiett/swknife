@@ -2,7 +2,7 @@ import sys
 
 import xlwt
 
-from python.common.os_clients import get_nova_client, get_keystone_client, get_glance_client
+from common.os_clients import get_nova_client, get_keystone_client, get_glance_client
 
 FIELDS = ['index', 'vm_uuid', 'vm_name', 'status','user','project', 'image', 'addresses']
 
