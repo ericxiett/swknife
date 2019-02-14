@@ -56,7 +56,7 @@ def get_all_vms():
     while True:
         instances = novac.servers.list(
             search_opts={'all_tenants': True}, detailed=True,
-            marker=instances[-1]
+            marker=instances[-1].id
         )
         if not instances:
             break
