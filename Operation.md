@@ -1,7 +1,7 @@
-#Openstack平台数据初始化
+# Openstack平台数据初始化
 此操作说明文档描述在openstack平台初始化设置或脚本执行的操作说明。
 
-##1 配额修改
+## 1 配额修改
 修改默认配额为-1无限制
 脚本位置swknife/shell/set_default_quotas.sh
 ```shell
@@ -15,7 +15,7 @@ source /root/keystonercv3
 openstack project show test_quotas_project
 openstack quota show test_quotas_project
 ```
-##2 创建管理用户
+## 2 创建管理用户
 * 构建python执行环境
 ```shell
 #安装虚拟环境
