@@ -249,3 +249,37 @@ download hdinsight hdinsight-insight4.0.1-centos7.5-x64_2019-03-06.qcow2
    upload "CentOS 6.5 64bit" "slb-centos6.5-x64-layerall-20190127" "aibuild" "20190127" "support 2 nics" "linux" "centos" "6.5" "no" "slb-centos6.5-x64-layerall-20190127_2019-03-06.qcow2"
 
    ```
+ * 查看验证
+   ```shell
+   root@ctl01:/tmp# openstack image list --long  -c ID -c Name -c Tags
+   +--------------------------------------+-----------------------------------------------+---------------------------------+
+   | ID                                   | Name                                          | Tags                            |
+   +--------------------------------------+-----------------------------------------------+---------------------------------+
+   | aac11960-63bf-4a45-b6bb-cd8ebe77f946 | Ubuntu                                        |                                 |
+   | 1c8b123b-d591-4696-a6a0-a73daba82045 | centos72x86_64.qcow2                          |                                 |
+   | 528436ad-b163-411c-bfd0-c3fc0d85c964 | cks-k8s-1.12.1-ubuntu16.04-20181203           | Ubuntu 16.04 64bit              |
+   | 1a1613c4-e706-47ec-bcec-8e14f78b9969 | cks-k8s-1.12.1-ubuntu16.04-2nics-20181203     | Ubuntu 16.04 64bit              |
+   | 04015b5e-445f-4f10-a3d3-93e4f4239ce8 | ecs-centos6.5-x64-20190104                    | CentOS 6.5 64bit                |
+   | b1ef5211-a57a-4c48-9d87-1ccff6baa594 | ecs-centos6.8-x64-20190104                    | CentOS 6.8 64bit                |
+   | 6107e23f-fb55-4508-8773-bc3721114dc4 | ecs-centos6.9-x64-20190104                    | CentOS 6.9 64bit                |
+   | 01f8797b-5ea4-4ad4-a9dc-f5f11c24ee4d | ecs-centos7.1-x64-20181226                    | CentOS 7.1 64bit                |
+   | 32253b86-6177-4b62-a8e6-b9b10fc94a0d | ecs-centos7.3-x64-20181226                    | CentOS 7.3 64bit                |
+   | be583825-1d9d-40ad-a425-1b3994925137 | ecs-centos7.4-x64-20181226                    | CentOS 7.4 64bit                |
+   | 381a0240-5fc2-4343-bb90-07d16d11f4ee | ecs-ubuntu1404-x64-20190104                   | Ubuntu 14.04 64bit              |
+   | baf240a6-3c3b-4781-9ba4-d77a5d076c25 | ecs-ubuntu1604-x64-20181220                   | Ubuntu 16.04 64bit              |
+   | 8aa6c45e-e8fd-41e8-8e7a-407c11a40aea | ecs-windows2012r2_dc-x64-20181226             | Windows Server 2012 R2 DC 64bit |
+   | 6343ba12-3674-4456-b3a9-dfe4deb87c1e | ecs-windows2016_dc-x64-20181226               | Windows Server 2016 R2 DC 64bit |
+   | 85a27e0f-3acc-477c-87ab-5cbd5eb892f8 | hdinsight-insight4.0.1-centos7.5-x64-20190110 | CentOS 7.5 64bit                |
+   | a00830cc-acab-4dc0-915d-5717e6109383 | image                                         |                                 |
+   | 4139dd9b-b418-4d9c-bc3a-3784a8ebc197 | rds-mysql5.6-ubuntu14.04-x64-20190223         | Ubuntu 14.04 64bit              |
+   | 89b5296b-64b1-48b3-be70-302367a749c7 | slb-centos6.5-x64-layerall-20190127           | CentOS 6.5 64bit                |
+   | 05c5b69c-1c2c-46ca-9a16-30f084d8c39a | test-image                                    |                                 |
+   | c4490eed-8235-4fe0-be0a-558622c55198 | test-image                                    |                                 |
+   | a923e29b-00c4-46c7-9e77-61fd66b53adb | testvm                                        |                                 |
+   +--------------------------------------+-----------------------------------------------+---------------------------------+
+   #注意hw_qemu_guest_agent参数设置
+   root@ctl01:/tmp# for i in $(openstack image list -f value -c ID);do openstack image show $i -f value -c id -c name -c properties -c tags|paste -d' ' -s;echo "##";done
+   528436ad-b163-411c-bfd0-c3fc0d85c964 cks-k8s-1.12.1-ubuntu16.04-20181203 build_at='20181203', builder='aibuild', direct_url='rbd://5fde40dc-b512-c2a5-27d1-f7d8da3cee51/images/528436ad-b163-411c-bfd0-c3fc0d85c964/snap', hw_qemu_guest_agent='no', os_distro='ubuntu', os_type='linux', os_version='16.04' Ubuntu 16.04 64bit
+   ##
+   04015b5e-445f-4f10-a3d3-93e4f4239ce8 ecs-centos6.5-x64-20190104 build_at='20190104', builder='aibuild', direct_url='rbd://5fde40dc-b512-c2a5-27d1-f7d8da3cee51/images/04015b5e-445f-4f10-a3d3-93e4f4239ce8/snap', hw_qemu_guest_agent='yes', os_distro='centos', os_type='linux', os_version='6.5' CentOS 6.5 64bit
+   ```
