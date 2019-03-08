@@ -63,22 +63,22 @@ python create_host_aggregate.py staging_swknife_collect.xlsx
 ```
 Operation is Finish.
 ----------------------------
-HgName: cn-sourth-1a_slb_lvs_general
+HgName: cn-south-1a_slb_lvs_general
 Status: SUCCESS
 ----------------------------
-HgName: cn-sourth-1a_slb_nginx_general
+HgName: cn-south-1a_slb_nginx_general
 Status: SUCCESS
 ----------------------------
-HgName: cn-sourth-1a_cks_general
+HgName: cn-south-1a_cks_general
 Status: SUCCESS
 ----------------------------
-HgName: cn-sourth-1a_ecs_general
+HgName: cn-south-1a_ecs_general
 Status: SUCCESS
 ----------------------------
-HgName: cn-sourth-1a_hdinsight_general
+HgName: cn-south-1a_hdinsight_general
 Status: SUCCESS
 ----------------------------
-HgName: cn-sourth-1a_reserve_general
+HgName: cn-south-1a_reserve_general
 Status: SUCCESS
 
 ```
@@ -88,24 +88,24 @@ root@ctl01:~# openstack aggregate list
 +----+--------------------------------+-------------------+
 | ID | Name                           | Availability Zone |
 +----+--------------------------------+-------------------+
-|  3 | cn-sourth-1a_slb_lvs_general   | cn-sourth-1a      |
-|  6 | cn-sourth-1a_slb_nginx_general | cn-sourth-1a      |
-|  9 | cn-sourth-1a_cks_general       | cn-sourth-1a      |
-| 12 | cn-sourth-1a_ecs_general       | cn-sourth-1a      |
-| 15 | cn-sourth-1a_hdinsight_general | cn-sourth-1a      |
-| 18 | cn-sourth-1a_reserve_general   | cn-sourth-1a      |
+|  3 | cn-south-1a_slb_lvs_general   | cn-south-1a      |
+|  6 | cn-south-1a_slb_nginx_general | cn-south-1a      |
+|  9 | cn-south-1a_cks_general       | cn-south-1a      |
+| 12 | cn-south-1a_ecs_general       | cn-south-1a      |
+| 15 | cn-south-1a_hdinsight_general | cn-south-1a      |
+| 18 | cn-south-1a_reserve_general   | cn-south-1a      |
 +----+--------------------------------+-------------------+
-root@ctl01:~# openstack aggregate show cn-sourth-1a_slb_lvs_general
+root@ctl01:~# openstack aggregate show cn-south-1a_slb_lvs_general
 +-------------------+-----------------------------------+
 | Field             | Value                             |
 +-------------------+-----------------------------------+
-| availability_zone | cn-sourth-1a                      |
+| availability_zone | cn-south-1a                      |
 | created_at        | 2019-03-05T01:41:38.000000        |
 | deleted           | False                             |
 | deleted_at        | None                              |
 | hosts             | [u'cmp001', u'cmp002']            |
 | id                | 3                                 |
-| name              | cn-sourth-1a_slb_lvs_general      |
+| name              | cn-south-1a_slb_lvs_general      |
 | properties        | SERVICE='SLB_LVS', SPEC='GENERAL' |
 | updated_at        | None                              |
 +-------------------+-----------------------------------+
