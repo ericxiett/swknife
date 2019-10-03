@@ -41,7 +41,7 @@ def clean_cinder_resources(project, count):
     cinder_client = get_cinder_client()
     print('Get volumes of project %s' % project.name)
     volumes = cinder_client.volumes.list(
-        search_opts={'project': project.id})
+        search_opts={'project_id': project.id})
     for vol in volumes:
         # Delete snapshots
         snapshots = cinder_client.volume_snapshots.list(
@@ -67,7 +67,7 @@ def clean_nova_resources(project, count):
     nova_client = get_nova_client()
     print('Get instances of project %s' % project.name)
     instances = nova_client.servers.list(
-        search_opts={'project': project.id, 'all_tenants': True})
+        search_opts={'project_id': project.id, 'all_tenants': True})
     for ins in instances:
         print('Instance %s is deleted' % ins.name)
         nova_client.servers.force_delete(ins.id)
