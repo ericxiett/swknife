@@ -12,7 +12,8 @@ NOVA_VER = '2.53'
 
 def get_nova_client():
     sess = create_session()
-    return novac.Client(NOVA_VER, session=sess, endpoint_type='admin')
+    # novaclient use publicURL default
+    return novac.Client(NOVA_VER, session=sess, insecure=True)
 
 def get_keystone_client():
     sess = create_session()
@@ -24,11 +25,12 @@ def get_glance_client():
 
 def get_cinder_client():
     sess = create_session()
-    return cinderc.Client('3', session=sess, endpoint_type='internal')
+    # Default: publicURL
+    return cinderc.Client('3', session=sess, insecure=True)
 
 def get_neutron_client():
     sess = create_session()
-    return neutronc.Client(session=sess, endpoint_type='internal')
+    return neutronc.Client(session=sess, insecure=True)
 
 def create_session():
     loader = loading.get_plugin_loader('password')

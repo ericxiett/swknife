@@ -1,6 +1,8 @@
 import sys
+import time
 
-from python.common.os_clients import get_keystone_client\
+import cinder.exception as cinder_exc
+from common.os_clients import get_keystone_client\
     , get_nova_client, get_cinder_client, get_neutron_client
 
 EXCLUDE = ['admin', 'service', 'xiett']
@@ -13,6 +15,8 @@ def print_helper():
 
 def clean_neutron_resources(project):
     neutron_client = get_neutron_client()
+    # Delete ports
+    networks = neutron_client.list_networks()
 
 
 def clean_resources_by_project():
@@ -39,6 +43,19 @@ def clean_cinder_resources(project, count):
     volumes = cinder_client.volumes.list(
         search_opts={'project': project.id})
     for vol in volumes:
+        # Delete snapshots
+        snapshots = cinder_client.volume_snapshots.list(
+            search_opts={'volume_id': vol.id})
+        for snap in snapshots:
+            print('Volume snapshot %s is deleted' % snap.name)
+            cinder_client.volume_snapshots.delete(snap.id)
+            while True:
+                try:
+                    cinder_client.volume_snapshots.get(snap.id)
+                    time.sleep(1)
+                except cinder_exc.SnapshotNotFound as e:
+                    break
+
         print('Volume %s is deleted' % vol.name)
         cinder_client.volumes.delete(vol.id)
         count += 1
@@ -50,7 +67,7 @@ def clean_nova_resources(project, count):
     nova_client = get_nova_client()
     print('Get instances of project %s' % project.name)
     instances = nova_client.servers.list(
-        search_opts={'project': project.id})
+        search_opts={'project': project.id, 'all_tenants': True})
     for ins in instances:
         print('Instance %s is deleted' % ins.name)
         nova_client.servers.force_delete(ins.id)
