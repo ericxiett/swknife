@@ -5,7 +5,7 @@ import cinderclient.exceptions as cinderc_exc
 from common.os_clients import get_keystone_client\
     , get_nova_client, get_cinder_client, get_neutron_client
 
-EXCLUDE = ['admin', 'service', 'xiett']
+EXCLUDE = []
 
 def print_helper():
     print('Welcome to use this script!')
@@ -41,7 +41,7 @@ def clean_cinder_resources(project, count):
     cinder_client = get_cinder_client()
     print('Get volumes of project %s' % project.name)
     volumes = cinder_client.volumes.list(
-        search_opts={'project_id': project.id})
+        search_opts={'project_id': project.id, 'all_tenants': True})
     for vol in volumes:
         # Delete snapshots
         snapshots = cinder_client.volume_snapshots.list(
