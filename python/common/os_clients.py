@@ -1,8 +1,10 @@
 import os
 
+from cinderclient import client as cinderc
 from glanceclient import Client as glancec
 from keystoneauth1 import loading, session
 from keystoneclient.v3 import client as keystonec
+from neutronclient.v2_0 import client as neutronc
 from novaclient import client as novac
 
 NOVA_VER = '2.53'
@@ -20,6 +22,13 @@ def get_glance_client():
     sess = create_session()
     return glancec('2', session=sess, interface='admin')
 
+def get_cinder_client():
+    sess = create_session()
+    return cinderc.Client('3', session=sess, endpoint_type='internal')
+
+def get_neutron_client():
+    sess = create_session()
+    return neutronc.Client(session=sess, endpoint_type='internal')
 
 def create_session():
     loader = loading.get_plugin_loader('password')

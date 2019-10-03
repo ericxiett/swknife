@@ -56,8 +56,7 @@ def get_all_flavors():
             break
         all_flavors.extend(flavors)
         last = all_flavors[-1]
-        print "last flavor is :"
-        print last
+        print("last flavor is : %s" % last)
     return all_flavors
 
 
