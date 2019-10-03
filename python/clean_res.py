@@ -1,7 +1,7 @@
 import sys
 import time
 
-import cinder.exception as cinder_exc
+import cinderclient.exceptions as cinderc_exc
 from common.os_clients import get_keystone_client\
     , get_nova_client, get_cinder_client, get_neutron_client
 
@@ -53,7 +53,7 @@ def clean_cinder_resources(project, count):
                 try:
                     cinder_client.volume_snapshots.get(snap.id)
                     time.sleep(1)
-                except cinder_exc.SnapshotNotFound as e:
+                except cinderc_exc.NotFound as e:
                     break
 
         print('Volume %s is deleted' % vol.name)
