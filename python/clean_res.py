@@ -22,7 +22,7 @@ def clean_neutron_resources(project):
         for po in ports.get('ports'):
             for sub in po.get('fixed_ips'):
                 neutron_client.remove_interface_router(
-                    rt.get('id'), subnet_id=sub.get('subnet_id'))
+                    rt.get('id'), body={'subnet_id': sub.get('subnet_id')})
             print('Port %s for router %s deleted' % (po.get('id'), rt.get('id')))
         neutron_client.delete_router(rt.get('id'))
         print('Router %s deleted' % rt.get('id'))
