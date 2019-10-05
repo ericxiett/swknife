@@ -20,6 +20,8 @@ def clean_neutron_resources(project):
     for rt in routers['routers']:
         ports = neutron_client.list_ports(device_id=rt.get('id'))
         for po in ports.get('ports'):
+            if po.get('device_owner') == 'network:router_gateway':
+                continue
             for sub in po.get('fixed_ips'):
                 neutron_client.remove_interface_router(
                     rt.get('id'), body={'subnet_id': sub.get('subnet_id')})
