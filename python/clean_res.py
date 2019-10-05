@@ -16,11 +16,13 @@ def print_helper():
 def clean_neutron_resources(project):
     neutron_client = get_neutron_client()
     # Delete routers
-    routers = neutron_client.list_routers()
+    routers = neutron_client.list_routers(project_id=project)
     for rt in routers['routers']:
         ports = neutron_client.list_ports(device_id=rt.get('id'))
         for po in ports.get('ports'):
-            neutron_client.delete_port(po.get('id'))
+            for sub in po.get('fixed_ips'):
+                neutron_client.remove_interface_router(
+                    rt.get('id'), subnet_id=sub.get('subnet_id'))
             print('Port %s for router %s deleted' % (po.get('id'), rt.get('id')))
         neutron_client.delete_router(rt.get('id'))
         print('Router %s deleted' % rt.get('id'))
