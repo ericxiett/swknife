@@ -16,7 +16,7 @@ def print_helper():
 def clean_neutron_resources(project):
     neutron_client = get_neutron_client()
     # Delete routers
-    routers = neutron_client.list_routers(project_id=project)
+    routers = neutron_client.list_routers(project_id=project.id)
     for rt in routers['routers']:
         ports = neutron_client.list_ports(device_id=rt.get('id'))
         for po in ports.get('ports'):
