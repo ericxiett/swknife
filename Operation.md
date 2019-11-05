@@ -145,6 +145,7 @@ root@ctl01:~# openstack flavor show dec448bc-e17d-463c-9089-348191397fdd
 +----------------------------+----------------------------------------------------------------------------------------------------------+
 
 ```
+python create_required_flavors.py -f staging_swknife_collect1.xlsx -t ClassicFlavor -i 2
 ## 5创建服务产品管理网
 程序使用
 ```python

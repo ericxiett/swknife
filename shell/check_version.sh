@@ -23,5 +23,16 @@ if [ $(dpkg -l|grep ${i}|grep $(eval echo "$"o_$i)|wc -l) -gt 0  ];then
   echo ${i} version is $(eval echo "$"o_$i) OpenStack Version:Ocata|tee -a /tmp/check_version.log
 elif [ $(dpkg -l|grep ${i}|grep $(eval echo "$"p_${i})|wc -l) -gt 0  ];then
   echo ${i} version is $(eval echo "$"p_$i) OpenStack Version:Pike|tee -a /tmp/check_version.log
+ else
+  echo "OpenStack version is neither Ocata nor Pike." |tee -a /tmp/check_version.log
+
 fi
+done
+
+for i in nova neutron cinder glance keystone;do
+	echo "#####################################${i}"|tee -a /tmp/conf.dat
+
+    grep -Ev '^#|^$' /etc/${i}/${i}.conf|tee -a /tmp/conf.dat
+
+    echo "#####################################"|tee -a /tmp/conf.dat
 done

@@ -12,10 +12,12 @@ function upload()
     os_ver="$8"
     enable_qga="$9"
     filename=${10}
+    tag2=${11}
+    tag3=${12}
     #wget $url -O image.qcow2
-    qemu-img convert -O raw $filename image.raw
+    qemu-img convert -c -O raw $filename image.raw
     . /root/keystonercv3
-    openstack image create --file image.raw --disk-format raw --tag "$tag" --container-format bare --public --property hw_qemu_guest_agent=$enable_qga --property os_type=$os_type --property builder=$builder --property os_distro=$os_distro --property os_version=$os_ver --property build_at=$build_at $name
+    openstack image create --file image.raw --disk-format raw --tag "$tag" --tag "$tag2" --tag "$tag3"--container-format bare --public --property hw_qemu_guest_agent=$enable_qga --property os_type=$os_type --property builder=$builder --property os_distro=$os_distro --property os_version=$os_ver --property build_at=$build_at $name
     rm -rf image.*
 }
 #ecs linux
@@ -33,8 +35,8 @@ upload "Windows Server 2008 STD 64bit" "ecs-windows2008r2_std-x64-20181226" "aib
 upload "Windows Server 2012 R2 DC 64bit" "ecs-windows2012r2_dc-x64-20181226" "aibuild" "20181226" "support qga" "windows" "2k12R2" "2k12R2DC" "yes" "WIN2012R2DC/WIN2012R2DCx86_64_20181226_11.qcow2"
 upload "Windows Server 2016 R2 DC 64bit" "ecs-windows2016_dc-x64-20181226" "aibuild" "20181226" "support qga" "windows" "2k16" "2k16DC" "yes" "WIN2016DC/WIN2016DCx86_64_20181226_9.qcow2"
 #production
-upload "Ubuntu 16.04 64bit" "cks-k8s-1.12.1-ubuntu16.04-2nics-20181203" "aibuild" "20181203" "support 2 nics" "linux" "ubuntu" "16.04" "no" "cks/k8s-1.12.1-ubuntu16.04-2nics.qcow2"
-upload "Ubuntu 16.04 64bit" "cks-k8s-1.12.1-ubuntu16.04-20181203" "aibuild" "20181203" "support 1 nics" "linux" "ubuntu" "16.04" "no" "cks/k8s-1.12.1-ubuntu16.04.qcow2"
+upload "Ubuntu 16.04 64bit" "cks-k8s-1.12.1-ubuntu16.04-2nics-20181206" "aibuild" "20181203" "support 2 nics" "linux" "ubuntu" "16.04" "no" "cks/k8s-1.12.1-ubuntu16.04-2nics.qcow2"
+upload "Ubuntu 16.04 64bit" "cks-k8s-1.12.1-ubuntu16.04-20181206" "aibuild" "20181203" "support 1 nics" "linux" "ubuntu" "16.04" "no" "cks/k8s-1.12.1-ubuntu16.04.qcow2"
 upload "CentOS 7.5 64bit" "hdinsight-insight4.0.1-centos7.5-x64-20190110 " "aibuild" "20190110" "support 2 nics" "linux" "centos" "7.5" "no" "hdinsight/hdinsight-insight4.0.1-centos7.5-x64_2019-03-06.qcow2"
 upload "Ubuntu 14.04 64bit" "rds-mysql5.6-ubuntu14.04-x64-20190223" "aibuild" "20190223" "support 2 nics" "linux" "ubuntu" "14.04" "no" "rds-mysql5.6-ubuntu14.04-x64-20190223_2019-03-06.qcow2"
 upload "CentOS 6.5 64bit" "slb-centos6.5-x64-layerall-20190127" "aibuild" "20190127" "support 2 nics" "linux" "centos" "6.5" "no" "slb-centos6.5-x64-layerall-20190127_2019-03-06.qcow2"
