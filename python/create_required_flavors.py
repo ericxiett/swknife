@@ -54,12 +54,14 @@ class Flavor(object):
         self.bandwidth = int(bandwidth) if bandwidth > 0 else 0
 
         # fixme spec might be a list of string
+        print "spec : %s" % spec
         if not spec:
             self.spec = [DEFAULT_SPEC]
-        elif isinstance(spec, str):
+        elif isinstance(spec, str) or isinstance(spec, unicode):
             # string::split will return a list
             # make sure that utf-8 characters will not report error
             self.spec = spec.replace(u'，', ',').split(',')
+            print self.spec
         else:
             self.spec = spec
 
@@ -285,7 +287,7 @@ def create_flavor(nova_client, flavor):
     # set method should be idempotent
 
     flavor_keys = {
-        "SPEC": flavor.spec[0].upper(),
+        "SPEC": '_'.join([i.upper() for i in flavor.spec]),
         "SERVICE": flavor.service
     }
 
